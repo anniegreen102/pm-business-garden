@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The PM Business Garden</title>
+<meta name="description" content="An interactive, sketchbook-style canvas to map your product's business: customer, landscape, monetization, retention and growth. Answers stay in your browser.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%232d2a26' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M12 55 Q32 51 52 55'/%3E%3Cpath d='M32 54 V30'/%3E%3Cpath d='M32 36 Q16 36 14 22 Q30 19 32 36Z' fill='%23cde8c9'/%3E%3Cpath d='M32 31 Q45 29 50 15 Q34 14 32 31Z' fill='%23f6c6cf'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#2d2a26; --rust:#b4532f; --muted:#6f6a62; --paper:#f5f2ea; --card:#fffdf7;
+  --accent:#cde8c9; --deep:#4f8a4a;
+  --r1:255px 18px 225px 18px/18px 225px 18px 255px;
+  --r2:18px 225px 18px 255px/255px 18px 225px 18px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;color:var(--ink);font-family:'Crimson Pro',Georgia,serif;font-size:17px;line-height:1.5}
+body{background-color:#fbf8f1;
+ background-image:
+  repeating-linear-gradient(90deg,rgba(246,190,200,.42) 0 56px,rgba(255,255,255,0) 56px 64px,rgba(196,226,190,.42) 64px 120px,rgba(255,255,255,0) 120px 128px,rgba(190,216,240,.42) 128px 184px,rgba(255,255,255,0) 184px 192px,rgba(247,228,150,.48) 192px 248px,rgba(255,255,255,0) 248px 256px,rgba(222,206,242,.42) 256px 312px,rgba(255,255,255,0) 312px 320px),
+  repeating-linear-gradient(0deg,rgba(247,228,150,.42) 0 56px,rgba(255,255,255,0) 56px 64px,rgba(246,190,200,.38) 64px 120px,rgba(255,255,255,0) 120px 128px,rgba(196,226,190,.40) 128px 184px,rgba(255,255,255,0) 184px 192px,rgba(222,206,242,.40) 192px 248px,rgba(255,255,255,0) 248px 256px,rgba(190,216,240,.40) 256px 312px,rgba(255,255,255,0) 312px 320px);
+ background-attachment:fixed}
+h1,h2,h3{font-weight:600;margin:0;line-height:1.2;color:var(--rust)}
+button{font:inherit;color:inherit;cursor:pointer}
+input,textarea{font:inherit;color:inherit}
+.paper{background-color:var(--paper);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.011' numOctaves='4' seed='11' stitchTiles='stitch'/%3E%3CfeDiffuseLighting lighting-color='%23f6f3ec' surfaceScale='2.4'%3E%3CfeDistantLight azimuth='45' elevation='58'/%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");background-size:600px;filter:drop-shadow(0 6px 10px rgba(80,60,40,.18))}
+.sketch{position:relative}
+.sketch::before{content:'';position:absolute;inset:0;border:1.7px solid var(--ink);border-radius:var(--r1);filter:url(#rough);pointer-events:none}
+.app{display:grid;grid-template-columns:290px 1fr;gap:26px;padding:26px;min-height:100vh;align-items:start}
+/* sidebar */
+.side{position:sticky;top:26px;max-height:calc(100vh - 52px);overflow:auto;padding:30px 22px;display:flex;flex-direction:column;gap:18px;transform:rotate(-.6deg)}
+.brand{display:flex;gap:10px;align-items:center}
+.brand .logo{width:46px;height:46px;flex:none}
+.brand b{display:block;font-size:22px;line-height:1.1;color:var(--rust);font-weight:600}
+.brand small{color:var(--muted);font-size:14px}
+.xpcard{padding:14px 16px;background:#fffdf7;border-radius:var(--r2)}
+.xpcard .lvl{font-size:14px;color:var(--muted)}
+.xpcard .lvlname{font-size:22px;margin:0 0 8px;font-weight:600}
+.bar{height:14px;border:1.6px solid var(--ink);border-radius:20px 8px 20px 8px;overflow:hidden;background:#fff}
+.bar>i{display:block;height:100%;width:0;transition:width .6s;background:repeating-linear-gradient(-45deg,#f6bec8 0 6px,#f7e496 6px 12px,#c4e2be 12px 18px,#bed8f0 18px 24px)}
+.xpcard .xpnums{display:flex;justify-content:space-between;font-size:14px;color:var(--muted);margin-top:6px}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav button{display:flex;align-items:center;gap:10px;border:0;background:none;padding:7px 10px;border-radius:var(--r2);text-align:left;width:100%}
+.nav button:hover{background:rgba(255,255,255,.6)}
+.nav button.on{background:#fffdf7;box-shadow:inset 0 0 0 1.6px var(--ink)}
+.ring{width:32px;height:32px;flex:none}
+.ring circle{fill:none;stroke-width:3.5}
+.nav .lbl{flex:1;line-height:1.15;font-weight:600}
+.nav .lbl small{display:block;color:var(--muted);font-size:14px;font-weight:400}
+.nav .chk{font-size:14px;color:var(--ink);width:22px;height:22px;border-radius:50%;display:grid;place-items:center;visibility:hidden;border:1.5px solid var(--ink)}
+.nav button.done .chk{visibility:visible}
+.shelflabel{font-size:14px;color:var(--muted);margin-bottom:8px}
+.badgeshelf{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.medal{aspect-ratio:1;border-radius:50% 46% 52% 48%;display:grid;place-items:center;background:#ece7dc;position:relative;transition:.4s;border:1.6px dashed #b9b1a3}
+.medal svg{width:72%;height:72%;filter:grayscale(1);opacity:.35}
+.medal.got{border:1.7px solid var(--ink);animation:bloom .7s ease}
+.medal.got svg{filter:none;opacity:1}
+@keyframes bloom{0%{transform:scale(.4) rotate(-20deg)}70%{transform:scale(1.15)}100%{transform:none}}
+.sidefoot{margin-top:auto;font-size:14px;color:var(--muted)}
+.sidefoot a{color:var(--muted)}
+.linkbtn{border:0;background:none;padding:0;text-decoration:underline;color:var(--muted);font-size:14px}
+/* main */
+main{padding:46px clamp(20px,4vw,60px) 70px;width:100%;max-width:960px}
+.hero{padding:28px 30px;margin-bottom:26px;position:relative;background:var(--accent);border-radius:var(--r1)}
+.hero::before{border-width:2px}
+.hero .kicker{font-size:14px;color:var(--ink);opacity:.75}
+.hero h1{font-size:34px;margin:4px 0 8px;max-width:640px}
+.hero p{margin:0;max-width:600px}
+.hero .reward{display:inline-flex;gap:8px;align-items:center;margin-top:14px;background:#fffdf7;padding:5px 14px 5px 8px;border-radius:var(--r2);font-size:15px;border:1.5px solid var(--ink)}
+.hero .reward svg{width:26px;height:26px}
+.hero .bigglyph{position:absolute;right:24px;top:18px;width:120px;height:120px;animation:sway 4s ease-in-out infinite;transform-origin:bottom center}
+.hero .bigglyph svg{width:100%;height:100%}
+@keyframes sway{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
+.lesson{font-size:15px;color:var(--muted);margin:-8px 0 20px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.lesson span{background:#fffdf7;border:1.4px dashed var(--ink);border-radius:var(--r2);padding:1px 12px;color:var(--ink)}
+.card{background:var(--card);padding:20px 24px;margin-bottom:18px;border-radius:var(--r1);box-shadow:4px 5px 0 rgba(45,42,38,.08);transition:transform .25s,box-shadow .25s}
+.card:nth-of-type(odd){transform:rotate(.25deg)}
+.card:nth-of-type(even){transform:rotate(-.25deg)}
+.card:nth-of-type(even)::before{border-radius:var(--r2)}
+.card.answered{box-shadow:5px 6px 0 var(--accent)}
+.qhead{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px}
+.qnum{flex:none;width:30px;height:30px;border-radius:50% 45% 52% 48%;border:1.5px solid var(--ink);display:grid;place-items:center;font-size:15px;font-weight:600;background:#fff;transition:.3s}
+.card.answered .qnum{background:var(--accent)}
+.qtitle{font-weight:600;font-size:19px;line-height:1.3}
+.qhelp{color:var(--muted);font-size:15px;margin-top:2px}
+.xptag{margin-left:auto;font-size:14px;color:var(--muted);white-space:nowrap;padding:0 10px;border:1.3px dashed #b9b1a3;border-radius:var(--r2)}
+.card.answered .xptag{background:var(--accent);color:var(--ink);border:1.3px solid var(--ink)}
+textarea,input[type=text],input[type=number]{width:100%;border:0;border-bottom:1.6px solid var(--ink);background:repeating-linear-gradient(#fffdf7 0 29px,#e6e0d3 29px 30px);border-radius:0;padding:4px 4px;outline:none;line-height:30px;font-size:17px}
+input[type=text],input[type=number]{background:transparent}
+textarea{min-height:92px;resize:vertical;border:1.6px solid var(--ink);border-radius:6px 14px 8px 12px;padding:2px 10px}
+textarea:focus,input:focus{background-color:#fffbe6}
+textarea::placeholder,input::placeholder{color:#aaa395}
+.opts{display:flex;flex-wrap:wrap;gap:10px}
+.opt{border:1.6px solid var(--ink);background:#fff;border-radius:var(--r2);padding:6px 16px;text-align:left;transition:transform .15s,background .15s;font-size:16px}
+.opt:nth-child(even){border-radius:var(--r1)}
+.opt:hover{transform:rotate(-1deg) translateY(-1px)}
+.opt.on{background:var(--accent);box-shadow:3px 3px 0 var(--ink)}
+.opt small{display:block;font-size:14px;color:var(--muted)}
+.opts.big .opt{flex:1 1 190px;padding:12px 16px}
+.opts.big .opt b{display:block;font-weight:600}
+.toggle{display:flex;align-items:center;gap:12px}
+.tg{display:flex;gap:10px}
+.tg button{border:1.6px solid var(--ink);background:#fff;padding:6px 18px;border-radius:var(--r2)}
+.tg button.on{background:var(--accent);box-shadow:3px 3px 0 var(--ink)}
+.scale{display:flex;gap:8px;align-items:center;flex-wrap:wrap;max-width:260px}
+.scale button{width:44px;height:44px;border-radius:50% 46% 52% 48%;border:1.6px solid var(--ink);background:#fff;font-weight:600}
+.scale button.on{background:var(--accent);box-shadow:3px 3px 0 var(--ink)}
+.scale .ends{font-size:14px;color:var(--muted);width:100%;display:flex;justify-content:space-between}
+.tags{display:flex;flex-wrap:wrap;gap:8px;border-bottom:1.6px solid var(--ink);padding:4px 0}
+.tags input{border:0!important;flex:1;min-width:160px}
+.chip{background:var(--accent);border:1.4px solid var(--ink);border-radius:var(--r2);padding:1px 6px 1px 12px;display:flex;gap:4px;align-items:center;font-size:16px}
+.chip button{border:0;background:none;color:var(--ink);padding:0 4px}
+.insight{display:none;margin-top:14px;padding:10px 14px 10px 46px;font-size:16px;background:#fffbe6;border-radius:4px 12px 6px 14px;position:relative;border:1.4px dashed var(--ink)}
+.insight.show{display:block;animation:pop .35s ease}
+.insight::before{content:'';position:absolute;left:12px;top:10px;width:24px;height:24px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%232d2a26' stroke-width='3' stroke-linecap='round'%3E%3Cg fill='%23f6bec8'%3E%3Ccircle cx='32' cy='16' r='10'/%3E%3Ccircle cx='48' cy='30' r='10'/%3E%3Ccircle cx='42' cy='48' r='10'/%3E%3Ccircle cx='22' cy='48' r='10'/%3E%3Ccircle cx='16' cy='30' r='10'/%3E%3C/g%3E%3Ccircle cx='32' cy='33' r='8' fill='%23f7e496'/%3E%3C/svg%3E") center/contain no-repeat}
+.insight.warn{background:#fdeee6}
+.insight.warn::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%232d2a26' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M8 44 Q8 22 30 22 Q46 22 46 36 Q46 46 36 46 Q28 46 28 38 Q28 32 34 32' fill='%23f9d0b0'/%3E%3Cpath d='M8 46 H56 Q60 46 58 40 L52 34'/%3E%3Cpath d='M52 34 L50 24 M54 34 L58 25'/%3E%3C/svg%3E")}
+.insight b{font-weight:600}
+@keyframes pop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.calc{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.calc label{font-size:14px;color:var(--muted);display:block;line-height:1.25;min-height:36px}
+.calcout{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.stat{background:#fff;border:1.5px solid var(--ink);border-radius:var(--r2);padding:10px 14px}
+.stat:nth-child(2){border-radius:var(--r1)}
+.stat .k{font-size:14px;color:var(--muted)}
+.stat .v{font-size:28px;font-weight:600;line-height:1.2}
+.stat.good{background:#e3f2df}.stat.bad{background:#fbe0e4}.stat.mid{background:#fbf2c8}
+.pos{line-height:2.5;font-size:18px}
+.pos input{display:inline-block;width:auto;min-width:160px;padding:0 6px;margin:0 2px}
+.pager{display:flex;justify-content:space-between;margin-top:26px;gap:10px}
+.btn{border:1.7px solid var(--ink);border-radius:var(--r2);padding:9px 22px;font-weight:600;background:#f7e496;color:var(--ink);box-shadow:3px 3px 0 var(--ink);font-size:17px}
+.btn:hover{transform:rotate(-1deg)}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.btn.ghost{background:#fff}
+.btn:disabled{opacity:.35;cursor:default;transform:none}
+/* brief */
+.brief{padding:32px 34px;border-radius:var(--r1);background:var(--card)}
+.brief h2{font-size:34px}
+.brief .eyebrow{font-size:15px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.brief .eyebrow svg{width:28px;height:28px}
+.brief h3{font-size:22px;margin:26px 0 10px;display:flex;align-items:center;gap:10px}
+.brief h3 i{width:16px;height:16px;border-radius:50% 45% 52% 48%;display:inline-block;border:1.5px solid var(--ink)}
+.brief dl{display:grid;grid-template-columns:220px 1fr;gap:6px 18px;margin:0;font-size:16px}
+.brief dt{color:var(--muted)}
+.brief dd{margin:0;border-bottom:1px dashed #d8d1c3;padding-bottom:4px}
+.brief .empty{color:#b6ae9f}
+.spots{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
+.spots li{background:#fdeee6;border:1.4px solid var(--ink);border-radius:var(--r2);padding:8px 16px;font-size:16px}
+.spots li:nth-child(even){border-radius:var(--r1);background:#fbf2c8}
+.spots li.ok{background:#e3f2df}
+.trophy{display:flex;gap:18px;align-items:center;border-radius:var(--r2);padding:18px 24px;margin-bottom:24px;background:#fffdf7}
+.trophy .cup{width:72px;height:72px;flex:none}
+.trophy .cup svg{width:100%;height:100%}
+.trophy b{font-size:22px;color:var(--rust);font-weight:600}
+.trophy p{margin:2px 0 0;color:var(--muted)}
+.brief-actions{display:flex;gap:12px;margin:24px 0 0;flex-wrap:wrap}
+.copied{font-size:15px;color:var(--deep);align-self:center}
+textarea.export{min-height:200px;font-family:inherit;font-size:15px;margin-top:12px;display:none;line-height:1.4}
+/* toast */
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,160%);background:#fffdf7;color:var(--ink);border-radius:var(--r2);padding:14px 22px 14px 14px;display:flex;gap:14px;align-items:center;border:1.8px solid var(--ink);box-shadow:5px 5px 0 var(--ink);transition:transform .45s cubic-bezier(.2,1.4,.4,1);z-index:50;max-width:92vw}
+.toast.show{transform:translate(-50%,0) rotate(-1deg)}
+.toast .medal{width:62px;flex:none;border:1.6px solid var(--ink)}
+.toast .medal svg{filter:none;opacity:1}
+.toast small{display:block;color:var(--muted);font-size:14px}
+.toast b{font-size:22px;font-weight:600;color:var(--rust)}
+.toast #toastSub{font-size:15px;color:var(--muted)}
+.floatxp{position:fixed;pointer-events:none;font-weight:600;color:var(--rust);z-index:40;animation:floatup 1s ease forwards;font-size:16px}
+@keyframes floatup{from{opacity:1;transform:translateY(0) rotate(-4deg)}to{opacity:0;transform:translateY(-40px) rotate(4deg)}}
+canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:60}
+.modal{position:fixed;inset:0;background:rgba(45,42,38,.35);display:none;place-items:center;z-index:70}
+.modal.show{display:grid}
+.modal .box{padding:26px;max-width:400px;border-radius:var(--r1)}
+.modal h3{font-size:22px}
+.modal .row{display:flex;gap:12px;justify-content:flex-end;margin-top:18px}
+@media (max-width:860px){
+  .app{grid-template-columns:1fr;padding:12px;gap:14px}
+  .side{position:static;max-height:none;transform:none}
+  .nav{flex-direction:row;overflow-x:auto}
+  .nav button{flex:none;width:auto}
+  .nav .lbl small{display:none}
+  .badgeshelf{grid-template-columns:repeat(8,1fr)}
+  .calc{grid-template-columns:repeat(2,1fr)}
+  .calcout{grid-template-columns:1fr}
+  .brief dl{grid-template-columns:1fr}
+  .brief dt{margin-top:6px}
+  .sidefoot{display:none}
+  .hero .bigglyph{width:70px;height:70px}
+  .hero h1{font-size:28px;max-width:80%}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="rough"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3.2"/></filter></svg>
+<div class="app">
+  <aside class="side paper sketch">
+    <div class="brand"><div class="logo" id="logo"></div><div><b>The Business Garden</b><small>Grow into a business-minded PM</small></div></div>
+    <div class="xpcard sketch">
+      <div class="lvl">Growth stage <span id="lvlNum">1</span></div>
+      <div class="lvlname" id="lvlName">Seed</div>
+      <div class="bar"><i id="xpBar"></i></div>
+      <div class="xpnums"><span id="xpNow">0 XP</span><span id="xpNext"></span></div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div>
+      <div class="shelflabel">Your garden</div>
+      <div class="badgeshelf" id="shelf"></div>
+    </div>
+    <div class="sidefoot">
+      Framework from <a href="https://www.youtube.com/watch?v=1xZ8mYYSfUg">Racheal Ou's "Business Concepts Every PM Needs to Know"</a>.<br>
+      Private by design: your answers are saved only in this browser and never sent anywhere. <button class="linkbtn" id="resetBtn">Replant from scratch</button>
+    </div>
+  </aside>
+  <div class="tornwrap" style="filter:drop-shadow(0 8px 12px rgba(80,60,40,.2));min-width:0"><main id="main" class="paper" style="filter:none"></main></div>
+</div>
+<div class="toast" id="toast"><div class="medal got" id="toastMedal"></div><div><small id="toastKicker">Badge unlocked</small><b id="toastTitle"></b><div id="toastSub"></div></div></div>
+<canvas id="confetti"></canvas>
+<div class="modal" id="modal"><div class="box paper sketch"><h3>Replant from scratch?</h3><p style="color:var(--muted);margin:8px 0 0">This clears every answer, seed and bloom in this browser.</p><div class="row"><button class="btn ghost" id="mCancel">Keep my garden</button><button class="btn" id="mOk" style="background:#f6bec8">Clear everything</button></div></div></div>
+
+<script>
+/* ---------------- Content model ---------------- */
+const CH = [
+ {id:'profile', name:'Warm-up', sub:'Your product at a glance', meta:'Plant the seed', hex:'#f3dfc4', deep:'#b07a3c', glyph:'acorn',
+  badge:'Acorn', badgeSub:'You planted the seed. Every strategy starts here.',
+  intro:'Before the frameworks: name what you are building and where it stands. Four quick answers.',
+  lessons:[],
+  qs:[
+   {id:'p_name', t:'text', q:'Product name', ph:'e.g. Acme Roadrunner'},
+   {id:'p_company', t:'text', q:'Company', ph:'e.g. Acme Corp'},
+   {id:'p_oneliner', t:'textarea', q:'Describe the product in one sentence, as you would to a smart friend', ph:'A route-planning app that helps small delivery businesses plan the fastest daily routes.'},
+   {id:'p_stage', t:'mcq', q:'What stage is the product in?', opts:['Idea','Pre-launch','Early traction','Scaling','Mature'],
+    insight:v=>({ 'Idea':'At idea stage, the Customer pillar matters most. Get it sharp before pricing.',
+      'Pre-launch':'Pre-launch: pay special attention to the activation moment in Retention. It is your first launch metric.',
+      'Early traction':'Early traction is when the product-market fit check in Retention is most honest. Answer it without flattering yourself.',
+      'Scaling':'At scale, unit economics and expansion revenue usually decide the roadmap. The Money and Growth chapters are where you\'ll earn the most.',
+      'Mature':'Mature products die like BlackBerry: by optimizing for what customers used to value. Spend time on the Landscape chapter.'})[v]}
+  ]},
+ {id:'customer', name:'Customer', sub:'Who is this for?', meta:'Know your soil', hex:'#cde8c9', deep:'#4f8a4a', glyph:'sprout',
+  badge:'Sprout · Customer Whisperer', badgeSub:'You can describe who you build for and who pays. Roadmap, pricing and positioning get sharper from here.',
+  intro:'If you can\'t clearly describe your customer, every downstream decision gets fuzzy: roadmap, pricing, positioning.',
+  lessons:['ICP','B2B / B2C / B2B2C','User vs buyer persona','SMB vs enterprise','Horizontal vs vertical'],
+  qs:[
+   {id:'c_model', t:'mcq', big:true, q:'Who do you sell to?', opts:[['B2B','Businesses buy it'],['B2C','Individuals buy it'],['B2B2C','A business buys, its customers use it']],
+    insight:v=>({B2B:'B2B usually means several people decide together, sales cycles run longer, and you need to prove ROI.',
+      B2C:'In B2C one person decides, often in seconds. UX, price and habit decide whether you win.',
+      B2B2C:'B2B2C means two customers: the business that pays and the end user who decides whether it sticks. Both need a reason to stay.'})[v]},
+   {id:'c_same', t:'toggle', q:'The person who uses the product every day is the same person who pays for it', yes:'Same person', no:'Different people',
+    insight:v=>v===false?'Two personas. Think of a teacher using classroom software while the school board signs the cheque. <b>Build what the user loves, and solve a problem the buyer will pay for.</b>':'One persona keeps things simple: the person who feels the value also controls the budget.'},
+   {id:'c_user', t:'textarea', q:'User persona: who uses it day to day, and what do they need?', ph:'Dispatchers at local bakeries who spend an hour every morning planning delivery routes by hand…'},
+   {id:'c_buyer', t:'textarea', q:'Buyer persona: who signs off on the budget, and what do they care about?', ph:'The shop owner, who cares about fuel costs and on-time deliveries…', show:s=>s.c_same===false},
+   {id:'c_size', t:'multi', q:'Which customer sizes do you target?', opts:['Consumers','SMB','Mid-market','Enterprise'],
+    insight:v=>{ if(!v.length) return null;
+      const ent=v.includes('Enterprise'), smb=v.includes('SMB')||v.includes('Consumers');
+      if(ent&&smb) return {warn:true, html:'Selling to SMB <b>and</b> enterprise means two motions: self-serve and sales-led. Be clear which one the roadmap serves first.'};
+      if(ent) return 'Enterprise brings bigger deals, plus longer cycles and demands for security reviews, SSO and procurement. Those become roadmap items.';
+      if(smb) return 'SMBs onboard fast and give quick feedback, so you learn what the market wants sooner. The trade-off is smaller deals.';
+      return 'Mid-market sits in between: deals big enough for light sales, buyers who still expect fast time-to-value.'}},
+   {id:'c_shape', t:'mcq', big:true, q:'Horizontal or vertical?', opts:[['Horizontal','Serves many customer types (e.g. Slack)'],['Vertical','Built for one industry or use case']],
+    insight:v=>v==='Horizontal'?'Horizontal products have a big market but face more competitors and fuzzier positioning.':'Vertical products face a smaller market but get sharper positioning, deeper features and higher willingness to pay.'},
+   {id:'c_vertical', t:'text', q:'Which industry or use case?', ph:'e.g. last-mile delivery for independent food shops', show:s=>s.c_shape==='Vertical'},
+   {id:'c_icp', t:'textarea', q:'Your Ideal Customer Profile in one breath', help:'Industry + size + region + the trigger that makes them need you now.', ph:'Independent food shops with 2–10 delivery vans, in mid-sized cities, that just added same-day delivery.'},
+   {id:'c_prio', t:'multi', q:'Because of who they are, the product must prioritize…', opts:['Simple setup','Templates','Guided onboarding','Self-serve','Integrations','Admin & permissions','Security & compliance','Customization','Dedicated support','Mobile'],
+    insight:v=>v.length>5?{warn:true,html:'That is a lot of priorities. If everything is a priority, nothing is. Can you cut to the 3 that most change whether this customer buys?'}:v.length?'These choices say what to <b>simplify</b> and what to <b>support</b>. Hold the roadmap to them.':null}
+  ]},
+ {id:'landscape', name:'Landscape', sub:'What stops them choosing you?', meta:'Read the meadow', hex:'#c6dff2', deep:'#3f78a8', glyph:'butterfly',
+  badge:'Butterfly · Meadow Scout', badgeSub:'You see the whole field: rivals, workarounds, and the option to do nothing.',
+  intro:'Customers never judge you in isolation. They compare you with competitors, workarounds, internal tools, and the option to do nothing.',
+  lessons:['Incumbents','New entrants','Disruptors','Differentiation','The BlackBerry lesson'],
+  qs:[
+   {id:'k_direct', t:'tags', q:'Direct competitors', help:'Type a name and press Enter.', ph:'e.g. RouteRival'},
+   {id:'k_alts', t:'multi', q:'What else could customers choose instead of you?', opts:['Spreadsheets / manual work','Phone, email or DMs','An in-house tool','Agencies / outsourcing','A big platform bundling it','AI assistants doing the job','Doing nothing'],
+    insight:v=>v.includes('Doing nothing')?'If "doing nothing" is an option, the status quo is a competitor. Put a number on what inaction costs them: hours, money, missed hires.':(v.includes('AI assistants doing the job')?'AI assistants are the new entrant in almost every category. What can you do that a general assistant can\'t?':(v.length?'Good. The real field is wider than the logos on a competitor slide.':null))},
+   {id:'k_new', t:'text', q:'Which new entrant or disruptor should you watch?', ph:'A foreign leader entering your market, a platform adding your feature natively…'},
+   {id:'k_axis', t:'mcq', q:'Your main axis of differentiation', opts:['Price','Experience / UX','Speed','Depth / specialization','Trust & security','Network or data advantage','Distribution'],
+    insight:v=>v==='Price'?{warn:true,html:'Competing on price is the hardest position to defend. Someone can always go cheaper. Is there an experience customers would pay more for?'}:'Make sure this axis is something customers value <b>now</b>, and keep watching whether that changes.'},
+   {id:'k_why', t:'textarea', q:'Why do customers pick you over the best alternative?', ph:'In their words, not ours…'},
+   {id:'k_shift', t:'textarea', q:'The BlackBerry check: what do customers value today that could shift tomorrow?', help:'BlackBerry led on keyboards, email and security, until the iPhone moved what customers cared about to touchscreens, apps and UX.', ph:'Today they want the shortest route; tomorrow they may expect live customer tracking…'}
+  ]},
+ {id:'money', name:'Monetization', sub:'How does it make money?', meta:'Tend the harvest', hex:'#f7eaa6', deep:'#b58e1a', glyph:'honey',
+  badge:'Honeypot · Harvest Keeper', badgeSub:'You know how money flows through the product, and whether each customer is worth acquiring.',
+  intro:'A product can solve a real problem and still fail as a business if customers won\'t pay enough, the margins don\'t work, or the model doesn\'t scale.',
+  lessons:['Revenue, cost, profit, margin','Unit economics','CAC','LTV','Business models','Pricing strategies'],
+  qs:[
+   {id:'m_models', t:'multi', q:'Business model(s)', opts:['SaaS','Marketplace','Platform','Product (one-time)','Services'],
+    insight:v=>v.length>1?'Hybrid is normal. Amazon is a marketplace and a subscription business through Prime. Know which model drives most of the revenue.':(v.length?'The model shapes what gets built, how customers adopt it and how the company grows.':null)},
+   {id:'m_pricing', t:'multi', q:'Pricing strategy', opts:['Freemium','Free trial','Ad-supported','Pay once','Subscription','Transaction fee','Seat-based','Usage-based'],
+    insight:v=>v.includes('Seat-based')&&v.includes('Usage-based')?{warn:true,html:'Seats + usage can confuse buyers. Make sure one of them is clearly the headline price.'}:(v.length?'Good. Next, check that what you charge for matches what customers value.':null)},
+   {id:'m_metric', t:'text', q:'What unit do customers pay for? (value metric)', ph:'per van, per delivery, per seat, per month…'},
+   {id:'m_unit', t:'calc', q:'Unit economics: is each customer worth acquiring?', help:'Rough monthly numbers are fine. LTV = monthly revenue per customer × gross margin ÷ monthly churn.', xp:30},
+   {id:'m_measured', t:'toggle', q:'Those numbers are measured, not estimated', yes:'Measured', no:'Estimated',
+    insight:v=>v===false?{warn:true,html:'Estimates are fine for now. Write down which data you\'d need to measure them; it is a strong ask for your analytics roadmap.'}:'Measured numbers make roadmap arguments much harder to dismiss.'},
+   {id:'m_wtp', t:'scale', q:'If you raised price 20% tomorrow, how many customers would still pay?', ends:['Most would leave','Nearly all would stay'],
+    insight:v=>v<=2?{warn:true,html:'Low pricing power means customers aren\'t yet seeing value worth more than the price, which leads to churn. Pricing problems are often value problems.'}:v>=4?'High pricing power. You may be leaving money on the table. Test a higher tier.':'Middle ground. Find the segment that would happily pay more.'}
+  ]},
+ {id:'retention', name:'Retention', sub:'Why do they stay?', meta:'Grow deep roots', hex:'#ddd0f0', deep:'#7d5fb0', glyph:'mushroom',
+  badge:'Mushroom · Root Keeper', badgeSub:'You know why customers stay and why they leave, and how close you are to product-market fit.',
+  intro:'Sustainable businesses are built on customers who keep getting value over time, not one-time signups.',
+  lessons:['Retention curves','Natural frequency','Churn','Activation','Product-market fit'],
+  qs:[
+   {id:'r_freq', t:'mcq', q:'How often does a happy customer naturally use the product?', opts:['Daily','Weekly','Monthly','Seasonal / yearly','Per project / one-off'],
+    insight:v=>({'Daily':'Measure retention day by day and week by week. A daily habit is your moat.','Weekly':'Weekly retention is your core health metric.','Monthly':'Use monthly cohorts. A weekly view will look worse than it is.','Seasonal / yearly':'Like tax software, used once a year. Good retention means they come back next season, not next week.','Per project / one-off':'Retention means "come back for the next project" or "recommend us". Measure repeat purchase and referral rate.'})[v]},
+   {id:'r_curve', t:'mcq', q:'What does your retention curve look like?', opts:['Flattens out','Keeps declining','Too early to tell','Haven\'t looked'],
+    insight:v=>v==='Flattens out'?'A curve that flattens means a group of customers keeps getting value. That is the start of product-market fit.':v==='Keeps declining'?{warn:true,html:'A curve that keeps falling means customers try it, then drift back to old tools. Fix this before spending more on acquisition.'}:v==='Haven\'t looked'?{warn:true,html:'Plot users by signup cohort against % still active. It\'s one of the most useful charts a PM can own.'}:'Early is fine. Decide now which cohort chart you\'ll check first.'},
+   {id:'r_aha', t:'textarea', q:'Activation: the moment a new customer first gets real value', ph:'The first morning a dispatcher sends out an optimized route in under 5 minutes…'},
+   {id:'r_when', t:'mcq', q:'When do customers usually churn?', opts:['In the first weeks','After several months','Both','Not sure'],
+    insight:v=>v==='In the first weeks'?{warn:true,html:'Early churn points to <b>onboarding or activation</b>: they never reached the aha moment.'}:v==='After several months'?{warn:true,html:'Late churn points to <b>long-term value or monetization</b>: they ran out of use cases, hit free-plan limits, or saw no reason to upgrade.'}:v==='Both'?{warn:true,html:'Two problems, two fixes: activation for early churners, long-term value for later ones. Don\'t solve them with one feature.'}:'Tag every churned account with a reason for the next 30 days. You\'ll have an answer quickly.'},
+   {id:'r_why', t:'textarea', q:'Top reasons customers leave', ph:'1. … 2. … 3. …'},
+   {id:'r_pmf', t:'multi', q:'Product-market fit check: tick what is true today', opts:['We serve a specific, well-defined segment','The problem is painful: they\'d be upset if we disappeared','Customers adopt it consistently without hand-holding','They pay for it, and renew'],
+    insight:v=>v.length===4?'All four. That is product-market fit: a specific segment, a painful problem, consistent adoption, and willingness to pay.':v.length>=2?{warn:true,html:v.length+'/4. The unticked boxes are your most important roadmap themes.'}:v.length?{warn:true,html:'Early days. Narrow the segment first; the other boxes get easier once you do.'}:null}
+  ]},
+ {id:'growth', name:'Growth', sub:'How does it grow?', meta:'Spread the seeds', hex:'#f9d0b0', deep:'#c46a33', glyph:'sunflower',
+  badge:'Sunflower · Seed Spreader', badgeSub:'You can position the product, name the engine that brings customers in, and grow revenue from existing ones.',
+  intro:'The best product doesn\'t always win. It has to be positioned well and sold to the right people.',
+  lessons:['Positioning','Go-to-market','Funnels vs growth loops','Upsell & cross-sell','Network effects'],
+  qs:[
+   {id:'g_pos', t:'position', q:'Positioning statement', help:'Fill in the blanks. Earlier answers appear as hints.', xp:30},
+   {id:'g_voice', t:'textarea', q:'How do customers describe you, in their own words?', help:'Airbnb began as a cheaper alternative to hotels; customers came to value it for unique, local stays. Airbnb leaned in and gained pricing power.', ph:'"It\'s like having a traffic expert plan my morning…"',
+    insight:(v,s)=>v&&v.length>10?'Compare this with your positioning above. Where they differ, customers may be showing you a stronger position.':null},
+   {id:'g_channels', t:'multi', q:'Go-to-market channels you rely on', opts:['Sales-led','Paid marketing','Content / SEO','Partnerships','Community','Product-led','Referrals','Events'],
+    insight:v=>v.length>4?{warn:true,html:'Early on, most companies win with 1–2 channels done very well. Which one would you double down on?'}:v.length?'Check: does this channel actually reach the buyer persona you described in Customer?':null},
+   {id:'g_engine', t:'mcq', big:true, q:'Main acquisition engine', opts:[['Funnel','Users move step by step: see → try → convert'],['Growth loop','Existing users bring in new ones through the product'],['Both','A funnel plus a loop']],
+    insight:v=>v==='Funnel'?'A funnel is fine, but it needs constant fuel. Look for a step where one user naturally exposes the product to someone new.':'Loops compound: every Calendly link sent is an ad for Calendly.'},
+   {id:'g_loop', t:'textarea', q:'Describe the loop: how does one user bring the next?', ph:'A customer gets a live tracking link → sees the Acme logo → their own shop signs up…', show:s=>s.g_engine==='Growth loop'||s.g_engine==='Both'},
+   {id:'g_upsell', t:'textarea', q:'Upsell: what better version could an existing customer pay more for?', ph:'Higher plan, more seats, more usage…'},
+   {id:'g_cross', t:'textarea', q:'Cross-sell: what adjacent product could they also buy?', ph:'A van-maintenance tracker for shops already using route planning…'},
+   {id:'g_net', t:'mcq', q:'Network effects: does the product get better as more people use it?', opts:['No','Somewhat','Strongly'],
+    insight:v=>v==='Strongly'?'Strong network effects (as with LinkedIn or Uber) are among the best moats. Protect the side of the network that is harder to attract.':v==='Somewhat'?'Data network effects count: more usage → better models → a better product. Make that visible to customers.':'That\'s fine. Most products have none. Your moat has to come from differentiation, switching costs or distribution.'}
+  ]},
+ {id:'principles', name:'PM Principles', sub:'Think like a business-minded PM', meta:'Become the gardener', hex:'#f6c6cf', deep:'#c05571', glyph:'bee',
+  badge:'Bee · Business-Minded PM', badgeSub:'You tie roadmap bets to business outcomes and stay the most informed person in the room.',
+  intro:'Every feature is a bet, paid for with engineering time, design time, GTM effort and opportunity cost.',
+  lessons:['Tie bets to outcomes','Know the field','Keep learning'],
+  qs:[
+   {id:'x_bet', t:'text', q:'Your biggest roadmap bet right now', ph:'e.g. Launch live delivery tracking for end customers'},
+   {id:'x_outcome', t:'multi', q:'Which business outcome does that bet move?', opts:['Revenue','Retention','Efficiency','Expansion','Competitive advantage'],
+    insight:v=>v.length>=4?{warn:true,html:'A bet that moves everything usually moves nothing clearly. Choose the one outcome you\'d put on the slide.'}:v.length?'Now say it as one sentence a CFO would nod at: "This bet moves <b>'+v[0].toLowerCase()+'</b> because…"':null},
+   {id:'x_why', t:'textarea', q:'Pitch it in two sentences to a skeptical exec', ph:'We lose X% of trials because… Building Y lifts Z, worth ~$N…'},
+   {id:'x_last', t:'mcq', q:'When did you last talk directly to a customer?', opts:['This week','This month','This quarter','Can\'t remember'],
+    insight:v=>v==='This week'?'Your opinions carry weight because they come from recent customer conversations.':{warn:true,html:'Book three customer calls this week. Your edge as a PM is being the most informed person in the room, not the smartest.'}},
+   {id:'x_know', t:'multi', q:'I honestly know these better than anyone in the room…', opts:['Our customers (better than sales)','Our competitors (better than marketing)','Our market (better than the CEO)'],
+    insight:v=>v.length===3?'All three. Make sure the next meeting hears it.':{warn:true,html:'The unticked ones are your homework for this month.'}},
+   {id:'x_study', t:'text', q:'One company\'s pivot or turnaround you\'ll study next', ph:'e.g. Domino\'s owning its "cardboard pizza" feedback and rebuilding the recipe'}
+  ]}
+];
+
+const DOODLES={
+ acorn:'<path d="M17 28 Q32 12 47 28 Z" fill="#c9a77c"/><path d="M32 17 v-7"/><path d="M20 28 Q19 50 32 55 Q45 50 44 28" fill="#f3d6a8"/><path d="M24 22 l4 3 M32 20 v4 M40 22 l-4 3"/>',
+ sprout:'<path d="M12 55 Q32 51 52 55"/><path d="M32 54 Q31 42 32 30"/><path d="M32 36 Q16 36 14 22 Q30 19 32 36Z" fill="#cde8c9"/><path d="M32 31 Q45 29 50 15 Q34 14 32 31Z" fill="#b8dcb2"/>',
+ butterfly:'<path d="M32 20 V46"/><path d="M31 29 Q17 6 10 21 Q10 35 31 31Z" fill="#c6dff2"/><path d="M33 29 Q47 6 54 21 Q54 35 33 31Z" fill="#c6dff2"/><path d="M31 33 Q15 37 19 47 Q27 52 31 37Z" fill="#ddd0f0"/><path d="M33 33 Q49 37 45 47 Q37 52 33 37Z" fill="#ddd0f0"/><path d="M32 20 Q28 13 25 10 M32 20 Q36 13 39 10"/>',
+ honey:'<path d="M18 27 Q13 53 32 55 Q51 53 46 27Z" fill="#f7eaa6"/><path d="M15 21 Q32 18 49 21 L49 27 Q32 30 15 27Z" fill="#f9d0b0"/><path d="M22 35 Q26 42 30 35 Q33 45 37 35 Q40 40 43 35"/><path d="M46 14 l6 -6 M49 17 l8 -2"/>',
+ mushroom:'<path d="M9 33 Q11 11 32 11 Q53 11 55 33 Q32 37 9 33Z" fill="#f6c6cf"/><path d="M25 34 Q23 49 25 55 H39 Q41 49 39 34" fill="#fbf3e6"/><circle cx="23" cy="22" r="3.5" fill="#fff"/><circle cx="37" cy="18" r="3" fill="#fff"/><circle cx="45" cy="27" r="2.5" fill="#fff"/>',
+ sunflower:'<path d="M32 40 Q30 50 32 60"/><path d="M32 52 Q22 48 20 42 Q28 42 32 50"/>'+[0,45,90,135,180,225,270,315].map(a=>`<ellipse cx="32" cy="12" rx="5.5" ry="9" fill="#f7e496" transform="rotate(${a} 32 25)"/>`).join('')+'<circle cx="32" cy="25" r="8.5" fill="#d9a46a"/><path d="M29 23 h0.1 M35 24 h0.1 M31 28 h0.1"/>',
+ bee:'<ellipse cx="25" cy="21" rx="7" ry="10" fill="#e8f3fb" transform="rotate(-15 25 21)"/><ellipse cx="38" cy="21" rx="7" ry="10" fill="#e8f3fb" transform="rotate(15 38 21)"/><ellipse cx="32" cy="38" rx="16" ry="11" fill="#f7e496"/><path d="M27 28 Q25 38 27 48 M36 28 Q38 38 36 48"/><path d="M48 38 L55 38"/><path d="M19 35 h0.1"/><path d="M14 30 Q8 22 12 18"/>',
+ oak:'<path d="M28 59 Q30 47 28 38 H36 Q34 47 36 59" fill="#d9bfa0"/><path d="M20 40 Q7 38 11 27 Q8 15 22 15 Q26 5 38 9 Q53 7 52 21 Q61 30 50 38 Q44 45 32 40 Q26 45 20 40Z" fill="#cde8c9"/><circle cx="24" cy="26" r="2.5" fill="#f6c6cf"/><circle cx="40" cy="22" r="2.5" fill="#f6c6cf"/><circle cx="44" cy="33" r="2.5" fill="#f6c6cf"/>',
+ basket:'<path d="M11 29 H53 L47 55 H17Z" fill="#f9d0b0"/><path d="M20 29 Q32 5 44 29"/><path d="M14 38 H50 M16 46 H48 M25 29 L27 55 M39 29 L37 55"/>',
+ leaf:'<path d="M13 51 Q13 17 51 13 Q51 49 13 51Z" fill="#cde8c9"/><path d="M13 51 L41 23 M24 40 L24 30 M32 32 L40 32"/>',
+ logo:'<path d="M10 54 Q12 20 40 12 Q50 10 54 12 Q52 44 22 50 Z" fill="#f6c6cf"/><path d="M12 52 Q26 34 44 20"/><path d="M40 46 Q46 52 54 50" /><circle cx="50" cy="50" r="0.1"/>'
+};
+const dd=(k)=>`<svg viewBox="0 0 64 64" fill="none" stroke="#2d2a26" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">${DOODLES[k]||''}</svg>`;
+const LEVELS=[[0,'Seed'],[15,'Seedling'],[35,'Sapling'],[55,'Blossoming Branch'],[75,'Fruit Tree'],[95,'Ancient Oak']];
+const ALL_Q = CH.flatMap(c=>c.qs.map(q=>({...q,ch:c.id})));
+const qxp = q => q.xp||10;
+
+/* ---------------- State ---------------- */
+const KEY='pm-business-canvas-v1';
+let S={a:{},seen:[]};
+try{const raw=localStorage.getItem(KEY); if(raw) S=Object.assign(S,JSON.parse(raw));}catch(e){}
+const A=S.a;
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+let cur = (location.hash||'').slice(1) || 'profile';
+if(!CH.find(c=>c.id===cur) && cur!=='brief') cur='profile';
+
+/* ---------------- Helpers ---------------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const optVal=o=>Array.isArray(o)?o[0]:o;
+function visible(q){return !q.show||q.show(A);}
+function answered(q){
+  const v=A[q.id];
+  if(v===undefined||v===null) return false;
+  if(q.t==='calc') return v && ['arpa','gm','churn','cac'].every(k=>v[k]!==''&&v[k]!==undefined&&!isNaN(+v[k]));
+  if(q.t==='position') return v && ['target','need','category','benefit','alt','diff'].filter(k=>(v[k]||'').trim()).length>=5;
+  if(typeof v==='string') return v.trim().length>0;
+  if(Array.isArray(v)) return v.length>0;
+  return true;
+}
+function chStats(c){const qs=c.qs.filter(visible);const done=qs.filter(answered);return {n:qs.length,d:done.length,xp:done.reduce((s,q)=>s+qxp(q),0),max:qs.reduce((s,q)=>s+qxp(q),0)};}
+function totals(){let xp=0,max=0;CH.forEach(c=>{const s=chStats(c);xp+=s.xp;max+=s.max;});return {xp,max,pct:max?xp/max*100:0};}
+function level(p){let i=0;LEVELS.forEach((l,k)=>{if(p>=l[0])i=k;});return i;}
+function unit(){const v=A.m_unit||{};const arpa=+v.arpa,gm=+v.gm/100,ch=+v.churn/100,cac=+v.cac;
+  if(!(arpa>0&&gm>0&&ch>0)) return null;
+  const ltv=arpa*gm/ch; return {ltv, ratio:cac>0?ltv/cac:null, payback:cac>0?cac/(arpa*gm):null, life:1/ch};}
+const money=n=>n>=1e6?'$'+(n/1e6).toFixed(1)+'M':n>=1e4?'$'+Math.round(n/1e3)+'k':'$'+Math.round(n).toLocaleString();
+
+/* ---------------- Sidebar ---------------- */
+function ring(p,col){const r=12,C=2*Math.PI*r;return `<svg class="ring" viewBox="0 0 30 30"><circle cx="15" cy="15" r="${r}" stroke="#d3cab9"/><circle cx="15" cy="15" r="${r}" stroke="${col}" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-p)}" stroke-linecap="round" transform="rotate(-90 15 15)" style="transition:stroke-dashoffset .5s"/></svg>`;}
+function renderSide(){
+  $('#nav').innerHTML = CH.map((c,i)=>{const s=chStats(c);const p=s.n?s.d/s.n:0;
+    return `<button data-go="${c.id}" class="${cur===c.id?'on':''} ${p>=1?'done':''}">${ring(p,c.deep)}<span class="lbl">${i?i+'. ':''}${c.name}<small>${c.sub}</small></span><span class="chk" style="background:${c.hex}">✓</span></button>`;}).join('')
+   + `<button data-go="brief" class="${cur==='brief'?'on':''}"><span class="ring">${dd('basket')}</span><span class="lbl">Harvest Basket<small>Your Business Brief + weeds to pull</small></span></button>`;
+  const t=totals(), li=level(t.pct);
+  $('#lvlNum').textContent=li+1+' of '+LEVELS.length; $('#lvlName').textContent=LEVELS[li][1];
+  $('#xpNow').textContent=t.xp+' / '+t.max+' seeds';
+  const next=LEVELS[li+1]; $('#xpNext').textContent=next?'Next: '+next[1]:'Max level';
+  $('#xpBar').style.width=t.pct+'%';
+  $('#shelf').innerHTML = CH.map(c=>`<div class="medal ${S.seen.includes(c.id)?'got':''}" title="${esc(c.badge)}" style="background:${S.seen.includes(c.id)?c.hex:''}">${dd(c.glyph)}</div>`).join('')
+   + `<div class="medal ${S.seen.includes('trophy')?'got':''}" title="Ancient Oak trophy" style="background:${S.seen.includes('trophy')?'#e3f2df':''}">${dd('oak')}</div>`;
+}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-go]'); if(b){go(b.dataset.go);}});
+function go(id){cur=id; try{history.replaceState(null,'','#'+id);}catch(e){location.hash=id;} render(); window.scrollTo({top:0,behavior:'smooth'});}
+window.addEventListener('hashchange',()=>{const h=location.hash.slice(1); if(h&&h!==cur&&(h==='brief'||CH.find(c=>c.id===h))){cur=h;render();}});
+
+/* ---------------- Question renderers ---------------- */
+function qHTML(q,i){
+  const v=A[q.id];
+  let body='';
+  if(q.t==='text') body=`<input type="text" data-q="${q.id}" value="${esc(v||'')}" placeholder="${esc(q.ph||'')}">`;
+  else if(q.t==='textarea') body=`<textarea data-q="${q.id}" placeholder="${esc(q.ph||'')}">${esc(v||'')}</textarea>`;
+  else if(q.t==='mcq'||q.t==='multi'){
+    const sel = q.t==='multi'?(v||[]):[v];
+    body=`<div class="opts ${q.big?'big':''}">`+q.opts.map(o=>{const val=optVal(o);const lab=Array.isArray(o)?`<b>${esc(o[0])}</b><small>${esc(o[1])}</small>`:esc(o);
+      return `<button class="opt ${sel.includes(val)?'on':''}" data-pick="${q.id}" data-val="${esc(val)}">${q.t==='multi'?'':''}${lab}</button>`;}).join('')+`</div>`;
+    if(q.t==='multi') body=`<div style="font-size:14px;color:var(--muted);margin:-6px 0 8px">Pick all that apply</div>`+body;
+  }
+  else if(q.t==='toggle') body=`<div class="toggle"><div class="tg"><button class="${v===true?'on':''}" data-tog="${q.id}" data-val="1">${q.yes}</button><button class="${v===false?'on':''}" data-tog="${q.id}" data-val="0">${q.no}</button></div></div>`;
+  else if(q.t==='scale') body=`<div class="scale">${[1,2,3,4,5].map(n=>`<button class="${v===n?'on':''}" data-scale="${q.id}" data-val="${n}">${n}</button>`).join('')}<div class="ends"><span>${q.ends[0]}</span><span>${q.ends[1]}</span></div></div>`;
+  else if(q.t==='tags') body=`<div class="tags" data-tagbox="${q.id}">${(v||[]).map((t,k)=>`<span class="chip">${esc(t)}<button data-untag="${q.id}" data-i="${k}" aria-label="remove">×</button></span>`).join('')}<input type="text" data-tagin="${q.id}" placeholder="${esc(q.ph||'')}"></div>`;
+  else if(q.t==='calc'){const c=v||{};
+    const f=(k,l,ph)=>`<div><label>${l}</label><input type="number" min="0" step="any" data-calc="${k}" value="${esc(c[k]??'')}" placeholder="${ph}"></div>`;
+    body=`<div class="calc">${f('arpa','Revenue / customer / month ($)','500')}${f('gm','Gross margin (%)','75')}${f('churn','Monthly churn (%)','3')}${f('cac','Cost to acquire (CAC, $)','3000')}</div><div class="calcout" id="calcout"></div>`;}
+  else if(q.t==='position'){const p=v||{};
+    const hint={target:A.c_icp?A.c_icp.split(/[,.]/)[0]:'target customer',need:'pain / need',category:A.m_models&&A.m_models[0]?A.m_models[0]+' product':'category',benefit:'key benefit',alt:(A.k_direct&&A.k_direct[0])||(A.k_alts&&A.k_alts[0])||'main alternative',diff:A.k_why?A.k_why.slice(0,40):'what makes you different'};
+    const inp=k=>`<input type="text" data-pos="${k}" value="${esc(p[k]||'')}" placeholder="${esc(hint[k])}">`;
+    body=`<div class="pos">For ${inp('target')} who ${inp('need')}, <b>${esc(A.p_name||'our product')}</b> is a ${inp('category')} that ${inp('benefit')}. Unlike ${inp('alt')}, we ${inp('diff')}.</div>`;}
+  return `<div class="card sketch ${answered(q)?'answered':''}" data-card="${q.id}" style="${visible(q)?'':'display:none'}">
+    <div class="qhead"><div class="qnum">${i+1}</div><div><div class="qtitle">${q.q}</div>${q.help?`<div class="qhelp">${q.help}</div>`:''}</div><span class="xptag">+${qxp(q)} seeds</span></div>
+    ${body}<div class="insight" data-ins="${q.id}"></div></div>`;
+}
+function renderInsight(q){
+  const el=document.querySelector(`[data-ins="${q.id}"]`); if(!el) return;
+  let out=null;
+  if(q.insight && answered(q)) out=q.insight(A[q.id],A);
+  if(q.t==='calc') out=calcInsight();
+  if(q.t==='position' && answered(q)){const p=A.g_pos;out=`<b>Your positioning:</b> For ${esc(p.target)} who ${esc(p.need)}, ${esc(A.p_name||'our product')} is a ${esc(p.category)} that ${esc(p.benefit)}. Unlike ${esc(p.alt||'the alternatives')}, we ${esc(p.diff)}.`;}
+  if(!out){el.className='insight';el.innerHTML='';return;}
+  const warn=typeof out==='object'&&out.warn; const html=typeof out==='object'?out.html:out;
+  el.className='insight show'+(warn?' warn':''); el.innerHTML=html;
+}
+function calcInsight(){
+  const box=$('#calcout'); const u=unit();
+  if(!box) return null;
+  if(!u){box.innerHTML='';return null;}
+  const r=u.ratio, cls=r==null?'':r>=3?'good':r>=1?'mid':'bad';
+  const pb=u.payback, pcls=pb==null?'':pb<=12?'good':pb<=24?'mid':'bad';
+  box.innerHTML=`<div class="stat"><div class="k">Lifetime value (LTV)</div><div class="v">${money(u.ltv)}</div><div class="k">~${u.life.toFixed(0)} month avg. lifetime</div></div>
+   <div class="stat ${cls}"><div class="k">LTV : CAC</div><div class="v">${r==null?'–':r.toFixed(1)+'×'}</div><div class="k">3× or more is healthy</div></div>
+   <div class="stat ${pcls}"><div class="k">CAC payback</div><div class="v">${pb==null?'–':pb.toFixed(1)+' mo'}</div><div class="k">Under 12 months is strong</div></div>`;
+  if(r==null) return 'Add CAC to see whether acquisition pays off.';
+  if(r>=5) return 'Very healthy, maybe <b>under-investing</b> in growth. You could afford bigger discounts or more spend to acquire customers faster.';
+  if(r>=3) return 'Healthy unit economics. Each customer returns well over what it cost to win them.';
+  if(r>=1) return {warn:true,html:'Customers pay back their acquisition cost, but thinly. The levers: lower churn (Retention), raise price or margin, or acquire more cheaply (Growth loops).'};
+  return {warn:true,html:'<b>Each new customer loses money.</b> Like a discount-funded delivery order that never earns back the coupon. Fix retention or pricing before scaling acquisition.'};
+}
+
+/* ---------------- Page render ---------------- */
+function render(){
+  renderSide();
+  if(cur==='brief') return renderBrief();
+  const c=CH.find(x=>x.id===cur); const idx=CH.indexOf(c);
+  document.documentElement.style.setProperty('--accent',c.hex);document.documentElement.style.setProperty('--deep',c.deep);
+  $('#main').innerHTML=`<section class="hero sketch"><div class="bigglyph">${dd(c.glyph)}</div>
+    <div class="kicker">${idx?'Pillar '+idx+' of '+(CH.length-1):'Warm-up'} · ${c.meta}</div><h1>${c.name}: ${c.sub}</h1><p>${c.intro}</p>
+    <div class="reward">${dd(c.glyph)} Finish this page to grow <b>&nbsp;${c.badge}</b></div></section>
+    ${c.lessons.length?`<div class="lesson">Seeds in this bed: ${c.lessons.map(l=>`<span>${l}</span>`).join('')}</div>`:''}
+    ${c.qs.map((q,i)=>qHTML(q,i)).join('')}
+    <div class="pager"><button class="btn ghost" ${idx?'':'disabled'} data-go="${idx?CH[idx-1].id:''}">← Back</button>
+    <button class="btn" data-go="${CH[idx+1]?CH[idx+1].id:'brief'}">${CH[idx+1]?'Wander on to '+CH[idx+1].name+' →':'Gather the harvest →'}</button></div>`;
+  c.qs.forEach(renderInsight);
+}
+function refresh(q, evEl){
+  const c=CH.find(x=>x.id===cur);
+  const before=totals().xp;
+  c.qs.forEach(qq=>{const card=document.querySelector(`[data-card="${qq.id}"]`); if(!card) return;
+    card.style.display=visible(qq)?'':'none'; card.classList.toggle('answered',answered(qq));});
+  renderInsight(q);
+  // dependent insights
+  c.qs.forEach(qq=>{if(qq!==q&&qq.insight&&qq.insight.length>1) renderInsight(qq);});
+  save(); renderSide();
+  const after=totals().xp;
+  if(after>before && evEl) floatXP(evEl,after-before);
+  checkBadges();
+}
+function floatXP(el,n){const r=el.getBoundingClientRect();const d=document.createElement('div');d.className='floatxp';d.textContent='+'+n+' seeds';d.style.left=(r.right-60)+'px';d.style.top=(r.top-6)+'px';document.body.appendChild(d);setTimeout(()=>d.remove(),1000);}
+
+/* ---------------- Events ---------------- */
+const qById=id=>ALL_Q.find(q=>q.id===id);
+document.addEventListener('click',e=>{
+  let b=e.target.closest('[data-pick]');
+  if(b){const q=qById(b.dataset.pick),val=b.dataset.val;
+    if(q.t==='mcq'){A[q.id]=A[q.id]===val?undefined:val; b.parentNode.querySelectorAll('.opt').forEach(o=>o.classList.toggle('on',o.dataset.val===A[q.id]));}
+    else{const arr=A[q.id]||[];const k=arr.indexOf(val);k>=0?arr.splice(k,1):arr.push(val);A[q.id]=arr;b.classList.toggle('on',k<0);}
+    return refresh(q,b);}
+  b=e.target.closest('[data-tog]');
+  if(b){const q=qById(b.dataset.tog);const val=b.dataset.val==='1';A[q.id]=A[q.id]===val?undefined:val;
+    b.parentNode.querySelectorAll('button').forEach(o=>o.classList.toggle('on',(o.dataset.val==='1')===A[q.id]&&A[q.id]!==undefined));return refresh(q,b);}
+  b=e.target.closest('[data-scale]');
+  if(b){const q=qById(b.dataset.scale);const n=+b.dataset.val;A[q.id]=A[q.id]===n?undefined:n;
+    b.parentNode.querySelectorAll('button').forEach(o=>o.classList.toggle('on',+o.dataset.val===A[q.id]));return refresh(q,b);}
+  b=e.target.closest('[data-untag]');
+  if(b){const q=qById(b.dataset.untag);A[q.id].splice(+b.dataset.i,1);b.closest('.chip').remove();
+    const box=document.querySelector(`[data-tagbox="${q.id}"]`);box.querySelectorAll('[data-untag]').forEach((x,k)=>x.dataset.i=k);return refresh(q,null);}
+});
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.dataset.q){const q=qById(t.dataset.q);A[q.id]=t.value;return refresh(q,t);}
+  if(t.dataset.calc){A.m_unit=A.m_unit||{};A.m_unit[t.dataset.calc]=t.value;return refresh(qById('m_unit'),t);}
+  if(t.dataset.pos){A.g_pos=A.g_pos||{};A.g_pos[t.dataset.pos]=t.value;return refresh(qById('g_pos'),t);}
+});
+document.addEventListener('keydown',e=>{
+  const t=e.target; if(!t.dataset||!t.dataset.tagin) return;
+  if((e.key==='Enter'||e.key===',')&&t.value.trim()){e.preventDefault();const q=qById(t.dataset.tagin);
+    A[q.id]=A[q.id]||[];const val=t.value.trim().replace(/,$/,'');if(!A[q.id].includes(val))A[q.id].push(val);t.value='';
+    const chip=document.createElement('span');chip.className='chip';chip.innerHTML=`${esc(val)}<button data-untag="${q.id}" data-i="${A[q.id].length-1}" aria-label="remove">×</button>`;
+    t.before(chip);refresh(q,t);}
+  if(e.key==='Backspace'&&!t.value){const q=qById(t.dataset.tagin);if(A[q.id]&&A[q.id].length){A[q.id].pop();t.previousElementSibling?.remove();refresh(q,null);}}
+});
+
+/* ---------------- Badges, toast, confetti ---------------- */
+let toastQ=[],toasting=false;
+function checkBadges(){
+  CH.forEach(c=>{const s=chStats(c); if(s.d===s.n&&s.n>0&&!S.seen.includes(c.id)){S.seen.push(c.id);toastQ.push({kicker:'Something bloomed',title:c.badge,sub:c.badgeSub,glyph:c.glyph,hex:c.hex});}});
+  const t=totals(); if(t.pct>=95&&!S.seen.includes('trophy')){S.seen.push('trophy');toastQ.push({kicker:'Your garden is complete',title:'Ancient Oak',sub:'Your harvest basket is full. Share the Business Brief with your team.',glyph:'oak',hex:'#e3f2df',big:true});}
+  // level-up
+  const li=level(t.pct); if(S.lvl===undefined)S.lvl=li; if(li>S.lvl){S.lvl=li; if(!toastQ.length) toastQ.push({kicker:'You grew · stage '+(li+1),title:LEVELS[li][1],sub:'Keep watering, the next bloom is close.',glyph:'leaf',hex:'#cde8c9',small:true});}
+  save(); renderSide(); nextToast();
+}
+function nextToast(){
+  if(toasting||!toastQ.length) return; toasting=true; const t=toastQ.shift();
+  $('#toastKicker').textContent=t.kicker; $('#toastTitle').textContent=t.title; $('#toastSub').textContent=t.sub;
+  const m=$('#toastMedal'); m.style.background=t.hex; m.innerHTML=dd(t.glyph);
+  $('#toast').classList.add('show'); if(!t.small) confetti(t.big?260:140);
+  setTimeout(()=>{$('#toast').classList.remove('show');setTimeout(()=>{toasting=false;nextToast();},450);},t.small?2600:4200);
+}
+function confetti(n){
+  const cv=$('#confetti'),ctx=cv.getContext('2d');cv.width=innerWidth;cv.height=innerHeight;
+  const cols=['#f6bec8','#f7e496','#c4e2be','#bed8f0','#decef2','#f9d0b0'];
+  const P=Array.from({length:n},()=>({x:Math.random()*innerWidth,y:-20-Math.random()*innerHeight*.6,vx:(Math.random()-.5)*1.5,vy:Math.random()*1.5+1.5,sw:Math.random()*6,r:Math.random()*7+6,c:cols[Math.random()*cols.length|0],a:Math.random()*6,va:(Math.random()-.5)*.3}));
+  let f=0;(function tick(){ctx.clearRect(0,0,cv.width,cv.height);P.forEach(p=>{p.sw+=.05;p.x+=p.vx+Math.sin(p.sw)*1.2;p.y+=p.vy;p.a+=p.va*.3;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.a);ctx.fillStyle=p.c;ctx.strokeStyle='#2d2a26';ctx.lineWidth=1.2;ctx.beginPath();ctx.ellipse(0,0,p.r/2,p.r/4,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();});
+    if(++f<260)requestAnimationFrame(tick);else ctx.clearRect(0,0,cv.width,cv.height);})();
+}
+
+/* ---------------- Brief ---------------- */
+function fmt(q){
+  const v=A[q.id]; if(!answered(q)) return '<span class="empty">Not answered yet</span>';
+  if(q.t==='toggle') return v?q.yes:q.no;
+  if(Array.isArray(v)) return esc(v.join(', '));
+  if(q.t==='scale') return v+' / 5 ('+(v<=2?q.ends[0].toLowerCase():v>=4?q.ends[1].toLowerCase():'mixed')+')';
+  if(q.t==='calc'){const u=unit();return u?`LTV ${money(u.ltv)} · LTV:CAC ${u.ratio?u.ratio.toFixed(1)+'×':'–'} · payback ${u.payback?u.payback.toFixed(1)+' mo':'–'} <span style="color:var(--muted)">(ARPA $${esc(v.arpa)}/mo, ${esc(v.gm)}% GM, ${esc(v.churn)}% churn, CAC $${esc(v.cac)})</span>`:'–';}
+  if(q.t==='position'){return `For ${esc(v.target)} who ${esc(v.need)}, ${esc(A.p_name||'our product')} is a ${esc(v.category)} that ${esc(v.benefit)}. Unlike ${esc(v.alt||'alternatives')}, we ${esc(v.diff)}.`;}
+  return esc(v).replace(/\n/g,'<br>');
+}
+const plain=h=>h.replace(/<br>/g,'\n').replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"');
+const short=q=>q.q.replace(/\s*\(.*?\)\s*/g,' ').replace(/:.*$/,'').replace(/…$/,'').trim();
+function blindSpots(){
+  const out=[];const u=unit();
+  if(A.c_same===false && !answered(qById('c_buyer'))) out.push('Users and buyers are different people, but the buyer persona is blank.');
+  if((A.c_prio||[]).length>5) out.push('More than 5 product priorities for your customer. Cut to the 3 that decide the purchase.');
+  if((A.k_alts||[]).includes('Doing nothing')) out.push('"Doing nothing" is a real competitor. Quantify the cost of inaction in your pitch.');
+  if(A.k_axis==='Price') out.push('Differentiating on price is hard to defend. Look for an experience customers will pay more for.');
+  if(u&&u.ratio!=null&&u.ratio<3) out.push(`LTV:CAC is ${u.ratio.toFixed(1)}×, below the 3× rule of thumb. Work on retention, pricing or cheaper acquisition.`);
+  if(!u) out.push('Unit economics are missing. Even rough LTV and CAC numbers change roadmap conversations.');
+  if(A.m_measured===false) out.push('Unit economics are estimated. List the data you need to measure them.');
+  if(A.m_wtp&&A.m_wtp<=2) out.push('Low pricing power. Customers may not be seeing value above price.');
+  if(A.r_curve==='Keeps declining') out.push('Retention keeps declining. Fix it before scaling acquisition.');
+  if(A.r_curve==='Haven\'t looked') out.push('Nobody has looked at the retention curve. Build a cohort chart.');
+  if(A.r_when==='In the first weeks'||A.r_when==='Both') out.push('Early churn: invest in onboarding and the activation moment.');
+  if(A.r_when==='After several months'||A.r_when==='Both') out.push('Late churn: look at long-term value, use-case breadth and upgrade paths.');
+  const pmf=(A.r_pmf||[]).length; if(answered(qById('r_pmf'))&&pmf<4) out.push(`Product-market fit check: ${pmf}/4. The unticked statements are roadmap themes.`);
+  if((A.g_channels||[]).length>4) out.push('Many GTM channels at once. Pick 1–2 to go deep on.');
+  if(A.g_engine==='Funnel') out.push('Funnel-only acquisition needs constant fuel. Look for a growth loop.');
+  if(!answered(qById('x_outcome'))&&answered(qById('x_bet'))) out.push('Your biggest bet isn\'t tied to a business outcome yet.');
+  if(A.x_last&&A.x_last!=='This week') out.push('Talk to a customer this week. Fresh insight is what gives a PM\'s opinion weight.');
+  const miss=ALL_Q.filter(q=>visible(q)&&!answered(q)).length; if(miss) out.push(`${miss} question${miss>1?'s':''} still open across the canvas.`);
+  return out;
+}
+function renderBrief(){
+  document.documentElement.style.setProperty('--accent','#3d5a34');
+  const t=totals(), li=level(t.pct), spots=blindSpots(), won=S.seen.includes('trophy');
+  const title=(A.p_name||'Your product')+(A.p_company?' · '+A.p_company:'');
+  $('#main').innerHTML=`
+   <div class="trophy sketch"><div class="cup" style="${won?'':'filter:grayscale(1);opacity:.45'}">${dd('oak')}</div><div><b>${won?'Ancient Oak: your garden is complete':'Growth stage '+(li+1)+': '+LEVELS[li][1]}</b>
+   <p>${won?'You can explain who you build for, how it makes money, why customers stay and what drives growth.':`${Math.round(t.pct)}% grown · ${CH.filter(c=>S.seen.includes(c.id)).length}/${CH.length} blooms. Reach 95% to grow the Ancient Oak.`}</p></div></div>
+   <div class="brief sketch" id="briefDoc">
+    <div class="eyebrow">${dd('basket')} Business Brief</div>
+    <h2>${esc(title)}</h2>
+    <p style="color:var(--muted);margin:6px 0 0">${A.p_oneliner?esc(A.p_oneliner):'Add a one-line description in the Warm-up.'}${A.p_stage?' · Stage: '+esc(A.p_stage):''}</p>
+    ${CH.slice(1).map(c=>`<h3><i style="background:${c.hex}"></i>${c.name}</h3><dl>${c.qs.filter(visible).map(q=>`<dt>${short(q)}</dt><dd>${fmt(q)}</dd>`).join('')}</dl>`).join('')}
+    <h3><i style="background:#c08a2a"></i>Weeds to pull &amp; next moves</h3>
+    <ul class="spots">${spots.length?spots.map(s=>`<li>${esc(s)}</li>`).join(''):'<li class="ok">No weeds spotted. Your garden is thriving.</li>'}</ul>
+    <div class="brief-actions"><button class="btn" id="copyMd">Copy as Markdown</button><button class="btn ghost" data-go="profile">Edit answers</button><span class="copied" id="copied"></span></div>
+    <textarea class="export" id="exportBox" readonly></textarea>
+   </div>`;
+  $('#copyMd').onclick=async()=>{
+    let md=`# Business Brief: ${title}\n\n${A.p_oneliner||''}${A.p_stage?'\nStage: '+A.p_stage:''}\n`;
+    CH.slice(1).forEach(c=>{md+=`\n## ${c.name}\n`;c.qs.filter(visible).forEach(q=>{md+=`- **${short(q)}:** ${plain(fmt(q))}\n`;});});
+    md+=`\n## Blind spots & next moves\n`+spots.map(s=>'- '+s).join('\n')+'\n';
+    try{await navigator.clipboard.writeText(md);$('#copied').textContent='Copied to clipboard';}
+    catch(e){const b=$('#exportBox');b.style.display='block';b.value=md;b.select();$('#copied').textContent='Select all and copy the text below';}
+  };
+}
+
+/* ---------------- Reset ---------------- */
+$('#resetBtn').onclick=()=>$('#modal').classList.add('show');
+$('#mCancel').onclick=()=>$('#modal').classList.remove('show');
+$('#mOk').onclick=()=>{for(const k in A)delete A[k];S.seen=[];S.lvl=0;save();$('#modal').classList.remove('show');go('profile');};
+
+$('#logo').innerHTML=dd('logo');
+(function tear(){const r=()=>(Math.random()*7).toFixed(1),pts=[];
+ for(let x=0;x<=100;x+=1.5)pts.push(`calc(${x}% ) calc(0% + ${r()}px)`);
+ for(let y=0;y<=100;y+=0.6)pts.push(`calc(100% - ${r()}px) ${y}%`);
+ for(let x=100;x>=0;x-=1.5)pts.push(`${x}% calc(100% - ${r()}px)`);
+ for(let y=100;y>=0;y-=0.6)pts.push(`calc(0% + ${r()}px) ${y}%`);
+ $('#main').style.clipPath='polygon('+pts.join(',')+')';})();
+render();
+if(S.lvl===undefined){S.lvl=level(totals().pct);save();}
+</script>
+</body>
+</html>
