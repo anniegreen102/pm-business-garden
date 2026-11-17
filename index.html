@@ -112,6 +112,8 @@ textarea::placeholder,input::placeholder{color:#aaa395}
 .tags{display:flex;flex-wrap:wrap;gap:8px;border-bottom:1.6px solid var(--ink);padding:4px 0}
 .tags input{border:0!important;flex:1;min-width:160px}
 .chip{background:var(--accent);border:1.4px solid var(--ink);border-radius:var(--r2);padding:1px 6px 1px 12px;display:flex;gap:4px;align-items:center;font-size:16px}
+.addtag{border:1.5px solid var(--ink);background:#f7e496;border-radius:var(--r2);padding:2px 12px;font-weight:600;white-space:nowrap;box-shadow:2px 2px 0 var(--ink)}
+.addtag kbd{font:inherit;font-weight:400;font-size:13px;color:var(--muted);margin-left:4px}
 .chip button{border:0;background:none;color:var(--ink);padding:0 4px}
 .insight{display:none;margin-top:14px;padding:10px 14px 10px 46px;font-size:16px;background:#fffbe6;border-radius:4px 12px 6px 14px;position:relative;border:1.4px dashed var(--ink)}
 .insight.show{display:block;animation:pop .35s ease}
@@ -123,6 +125,8 @@ textarea::placeholder,input::placeholder{color:#aaa395}
 .opt.sug::after,.sugdot{content:'';position:absolute;top:-6px;right:-6px;width:14px;height:14px;border-radius:50%;background:#f7e496;border:1.5px solid var(--ink)}
 .sugdot{position:relative;display:inline-block;top:2px;right:0;margin:0 2px}
 .opts.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.otherrow{display:flex;gap:8px;align-items:baseline;margin-top:12px}
+.otherrow span{color:var(--muted);white-space:nowrap}
 .maxnote{display:none;margin-top:10px;font-size:15px;color:var(--rust)}
 @keyframes pop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 .calc{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
@@ -285,8 +289,8 @@ const CH = [
   intro:'Customers never judge you in isolation. They compare you with competitors, workarounds, internal tools, and the option to do nothing.',
   lessons:['Incumbents','New entrants','Disruptors','Differentiation','The BlackBerry lesson'],
   qs:[
-   {id:'k_direct', t:'tags', q:'Direct competitors', help:'Type a name and press Enter.', ph:'e.g. Disney+'},
-   {id:'k_alts', t:'multi', q:'What else could customers choose instead of you?', opts:['Spreadsheets / manual work','Phone, email or DMs','An in-house tool','Agencies / outsourcing','A big platform bundling it','AI assistants doing the job','Doing nothing'],
+   {id:'k_direct', t:'tags', q:'Direct competitors', help:'Type a name, then press Enter or click Add. Add as many as you like.', ph:'e.g. Disney+'},
+   {id:'k_alts', t:'multi', other:'e.g. watching regular TV, going to the cinema, reading', q:'What else could customers choose instead of you?', opts:['Spreadsheets / manual work','Phone, email or DMs','An in-house tool','Agencies / outsourcing','A big platform bundling it','AI assistants doing the job','Doing nothing'],
     insight:v=>v.includes('Doing nothing')?'If "doing nothing" is an option, the status quo is a competitor. Put a number on what inaction costs them: hours, money, missed hires.':(v.includes('AI assistants doing the job')?'AI assistants are the new entrant in almost every category. What can you do that a general assistant can\'t?':(v.length?'Good. The real field is wider than the logos on a competitor slide.':null))},
    {id:'k_new', t:'text', q:'Which new entrant or disruptor should you watch?', ph:'e.g. YouTube and TikTok competing for the same evening hours…'},
    {id:'k_axis', t:'mcq', q:'Your main axis of differentiation', opts:['Price','Experience / UX','Speed','Depth / specialization','Trust & security','Network or data advantage','Distribution'],
@@ -395,6 +399,7 @@ const optVal=o=>Array.isArray(o)?o[0]:o;
 function visible(q){return !q.show||q.show(A);}
 function answered(q){
   const v=A[q.id];
+  if(q.other&&(A[q.id+'__other']||'').trim()) return true;
   if(v===undefined||v===null) return false;
   if(q.t==='calc') return v && ['arpa','gm','churn','cac'].every(k=>v[k]!==''&&v[k]!==undefined&&!isNaN(+v[k]));
   if(q.t==='position') return v && ['target','need','category','benefit','alt','diff'].filter(k=>(v[k]||'').trim()).length>=5;
@@ -425,7 +430,7 @@ function renderSide(){
    + `<div class="medal ${S.seen.includes('trophy')?'got':''}" title="Ancient Oak trophy" style="background:${S.seen.includes('trophy')?'#e3f2df':''}">${dd('oak')}</div>`;
 }
 document.addEventListener('click',e=>{const b=e.target.closest('[data-go]'); if(b){go(b.dataset.go);}});
-function go(id){cur=id; try{history.replaceState(null,'','#'+id);}catch(e){location.hash=id;} render(); window.scrollTo({top:0,behavior:'smooth'});}
+function go(id){document.querySelectorAll('[data-tagin]').forEach(t=>{if(t.value.trim())addTag(t);});cur=id; try{history.replaceState(null,'','#'+id);}catch(e){location.hash=id;} render(); window.scrollTo({top:0,behavior:'smooth'});}
 window.addEventListener('hashchange',()=>{const h=location.hash.slice(1); if(h&&h!==cur&&(h==='brief'||CH.find(c=>c.id===h))){cur=h;render();}});
 
 /* ---------------- Question renderers ---------------- */
@@ -438,11 +443,12 @@ function qHTML(q,i){
     const sel = q.t==='multi'?(v||[]):[v];
     body=`<div class="opts ${q.big?'big':''} ${q.max?'grid':''}">`+q.opts.map(o=>{const val=optVal(o);const lab=Array.isArray(o)?`<b>${esc(o[0])}</b><small>${esc(o[1])}</small>`:esc(o);
       return `<button class="opt ${sel.includes(val)?'on':''}" data-pick="${q.id}" data-val="${esc(val)}">${lab}</button>`;}).join('')+`</div>`;
+    if(q.t==='multi'&&q.other) body+=`<label class="otherrow"><span>Other:</span><input type="text" class="otherin" data-other="${q.id}" value="${esc(A[q.id+'__other']||'')}" placeholder="type your own (${esc(q.other)})"></label>`;
     if(q.t==='multi') body=`<div style="font-size:14px;color:var(--muted);margin:-6px 0 8px">${q.max?'Pick up to '+q.max+' · tap again to unselect':'Pick all that apply'}<span class="sugnote" data-sugnote="${q.id}"></span></div>`+body;
   }
   else if(q.t==='toggle') body=`<div class="toggle"><div class="tg"><button class="${v===true?'on':''}" data-tog="${q.id}" data-val="1">${q.yes}</button><button class="${v===false?'on':''}" data-tog="${q.id}" data-val="0">${q.no}</button></div></div>`;
   else if(q.t==='scale') body=`<div class="scale">${[1,2,3,4,5].map(n=>`<button class="${v===n?'on':''}" data-scale="${q.id}" data-val="${n}">${n}</button>`).join('')}<div class="ends"><span>${q.ends[0]}</span><span>${q.ends[1]}</span></div></div>`;
-  else if(q.t==='tags') body=`<div class="tags" data-tagbox="${q.id}">${(v||[]).map((t,k)=>`<span class="chip">${esc(t)}<button data-untag="${q.id}" data-i="${k}" aria-label="remove">×</button></span>`).join('')}<input type="text" data-tagin="${q.id}" placeholder="${esc(q.ph||'')}"></div>`;
+  else if(q.t==='tags') body=`<div class="tags" data-tagbox="${q.id}">${(v||[]).map((t,k)=>`<span class="chip">${esc(t)}<button data-untag="${q.id}" data-i="${k}" aria-label="remove">×</button></span>`).join('')}<input type="text" data-tagin="${q.id}" placeholder="${esc(q.ph||'')}"><button class="addtag" data-addtag="${q.id}" type="button">+ Add <kbd>Enter ↵</kbd></button></div>`;
   else if(q.t==='calc'){const c=v||{};
     const f=(k,l,ph)=>`<div><label>${l}</label><input type="number" min="0" step="any" data-calc="${k}" value="${esc(c[k]??'')}" placeholder="${ph}"></div>`;
     body=`<div class="calc">${f('arpa','Revenue / customer / month ($)','15')}${f('gm','Gross margin (%)','40')}${f('churn','Monthly churn (%)','2.5')}${f('cac','Cost to acquire (CAC, $)','60')}</div><div class="calcout" id="calcout"></div>`;}
@@ -460,7 +466,7 @@ function updateSuggest(){ALL_Q.filter(q=>q.suggest).forEach(q=>{const card=docum
 function renderInsight(q){
   const el=document.querySelector(`[data-ins="${q.id}"]`); if(!el) return;
   let out=null;
-  if(q.insight && answered(q)) out=q.insight(A[q.id],A);
+  if(q.insight && answered(q)) out=q.insight(q.t==='multi'?(A[q.id]||[]):A[q.id],A);
   if(q.t==='calc') out=calcInsight();
   if(q.t==='position' && answered(q)){const p=A.g_pos;out=`<b>Your positioning:</b> For ${esc(p.target)} who ${esc(p.need)}, ${esc(A.p_name||'our product')} is a ${esc(p.category)} that ${esc(p.benefit)}. Unlike ${esc(p.alt||'the alternatives')}, we ${esc(p.diff)}.`;}
   if(!out){el.className='insight';el.innerHTML='';return;}
@@ -529,6 +535,8 @@ document.addEventListener('click',e=>{
   b=e.target.closest('[data-scale]');
   if(b){const q=qById(b.dataset.scale);const n=+b.dataset.val;A[q.id]=A[q.id]===n?undefined:n;
     b.parentNode.querySelectorAll('button').forEach(o=>o.classList.toggle('on',+o.dataset.val===A[q.id]));return refresh(q,b);}
+  b=e.target.closest('[data-addtag]');
+  if(b){const t=b.parentNode.querySelector('[data-tagin]');if(t.value.trim())addTag(t);t.focus();return;}
   b=e.target.closest('[data-untag]');
   if(b){const q=qById(b.dataset.untag);A[q.id].splice(+b.dataset.i,1);b.closest('.chip').remove();
     const box=document.querySelector(`[data-tagbox="${q.id}"]`);box.querySelectorAll('[data-untag]').forEach((x,k)=>x.dataset.i=k);return refresh(q,null);}
@@ -536,15 +544,18 @@ document.addEventListener('click',e=>{
 document.addEventListener('input',e=>{
   const t=e.target;
   if(t.dataset.q){const q=qById(t.dataset.q);A[q.id]=t.value;return refresh(q,t);}
+  if(t.dataset.other){const q=qById(t.dataset.other);A[q.id+'__other']=t.value;return refresh(q,t);}
   if(t.dataset.calc){A.m_unit=A.m_unit||{};A.m_unit[t.dataset.calc]=t.value;return refresh(qById('m_unit'),t);}
   if(t.dataset.pos){A.g_pos=A.g_pos||{};A.g_pos[t.dataset.pos]=t.value;return refresh(qById('g_pos'),t);}
 });
+function addTag(t){const val=t.value.trim().replace(/,$/,'').trim();t.value='';if(!val)return;const q=qById(t.dataset.tagin);
+  A[q.id]=A[q.id]||[];if(A[q.id].includes(val))return refresh(q,null);A[q.id].push(val);
+  const chip=document.createElement('span');chip.className='chip';chip.innerHTML=`${esc(val)}<button data-untag="${q.id}" data-i="${A[q.id].length-1}" aria-label="remove">×</button>`;
+  t.before(chip);refresh(q,t);}
+document.addEventListener('focusout',e=>{const t=e.target;if(t.dataset&&t.dataset.tagin&&t.value.trim())addTag(t);});
 document.addEventListener('keydown',e=>{
   const t=e.target; if(!t.dataset||!t.dataset.tagin) return;
-  if((e.key==='Enter'||e.key===',')&&t.value.trim()){e.preventDefault();const q=qById(t.dataset.tagin);
-    A[q.id]=A[q.id]||[];const val=t.value.trim().replace(/,$/,'');if(!A[q.id].includes(val))A[q.id].push(val);t.value='';
-    const chip=document.createElement('span');chip.className='chip';chip.innerHTML=`${esc(val)}<button data-untag="${q.id}" data-i="${A[q.id].length-1}" aria-label="remove">×</button>`;
-    t.before(chip);refresh(q,t);}
+  if((e.key==='Enter'||e.key===',')&&t.value.trim()){e.preventDefault();addTag(t);}
   if(e.key==='Backspace'&&!t.value){const q=qById(t.dataset.tagin);if(A[q.id]&&A[q.id].length){A[q.id].pop();t.previousElementSibling?.remove();refresh(q,null);}}
 });
 
@@ -576,6 +587,7 @@ function confetti(n){
 function fmt(q){
   const v=A[q.id]; if(!answered(q)) return '<span class="empty">Not answered yet</span>';
   if(q.t==='toggle') return v?q.yes:q.no;
+  if(q.t==='multi'){const o=(A[q.id+'__other']||'').trim();return esc([...(v||[]),...(o?['Other: '+o]:[])].join(', '));}
   if(Array.isArray(v)) return esc(v.join(', '));
   if(q.t==='scale') return v+' / 5 ('+(v<=2?q.ends[0].toLowerCase():v>=4?q.ends[1].toLowerCase():'mixed')+')';
   if(q.t==='calc'){const u=unit();return u?`LTV ${money(u.ltv)} · LTV:CAC ${u.ratio?u.ratio.toFixed(1)+'×':'–'} · payback ${u.payback?u.payback.toFixed(1)+' mo':'–'} <span style="color:var(--muted)">(ARPA $${esc(v.arpa)}/mo, ${esc(v.gm)}% GM, ${esc(v.churn)}% churn, CAC $${esc(v.cac)})</span>`:'–';}
