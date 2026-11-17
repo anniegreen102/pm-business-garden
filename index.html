@@ -119,6 +119,11 @@ textarea::placeholder,input::placeholder{color:#aaa395}
 .insight.warn{background:#fdeee6}
 .insight.warn::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%232d2a26' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M8 44 Q8 22 30 22 Q46 22 46 36 Q46 46 36 46 Q28 46 28 38 Q28 32 34 32' fill='%23f9d0b0'/%3E%3Cpath d='M8 46 H56 Q60 46 58 40 L52 34'/%3E%3Cpath d='M52 34 L50 24 M54 34 L58 25'/%3E%3C/svg%3E")}
 .insight b{font-weight:600}
+.opt.sug{position:relative}
+.opt.sug::after,.sugdot{content:'';position:absolute;top:-6px;right:-6px;width:14px;height:14px;border-radius:50%;background:#f7e496;border:1.5px solid var(--ink)}
+.sugdot{position:relative;display:inline-block;top:2px;right:0;margin:0 2px}
+.opts.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.maxnote{display:none;margin-top:10px;font-size:15px;color:var(--rust)}
 @keyframes pop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 .calc{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .calc label{font-size:14px;color:var(--muted);display:block;line-height:1.25;min-height:36px}
@@ -227,9 +232,9 @@ const CH = [
   intro:'Before the frameworks: name what you are building and where it stands. Four quick answers.',
   lessons:[],
   qs:[
-   {id:'p_name', t:'text', q:'Product name', ph:'e.g. Acme Roadrunner'},
-   {id:'p_company', t:'text', q:'Company', ph:'e.g. Acme Corp'},
-   {id:'p_oneliner', t:'textarea', q:'Describe the product in one sentence, as you would to a smart friend', ph:'A route-planning app that helps small delivery businesses plan the fastest daily routes.'},
+   {id:'p_name', t:'text', q:'Product name', ph:'e.g. Netflix'},
+   {id:'p_company', t:'text', q:'Company', ph:'e.g. Netflix, Inc.'},
+   {id:'p_oneliner', t:'textarea', q:'Describe the product in one sentence, as you would to a smart friend', ph:'A streaming service where people watch films and series on any screen for a monthly subscription.'},
    {id:'p_stage', t:'mcq', q:'What stage is the product in?', opts:['Idea','Pre-launch','Early traction','Scaling','Mature'],
     insight:v=>({ 'Idea':'At idea stage, the Customer pillar matters most. Get it sharp before pricing.',
       'Pre-launch':'Pre-launch: pay special attention to the activation moment in Retention. It is your first launch metric.',
@@ -248,8 +253,8 @@ const CH = [
       B2B2C:'B2B2C means two customers: the business that pays and the end user who decides whether it sticks. Both need a reason to stay.'})[v]},
    {id:'c_same', t:'toggle', q:'The person who uses the product every day is the same person who pays for it', yes:'Same person', no:'Different people',
     insight:v=>v===false?'Two personas. Think of a teacher using classroom software while the school board signs the cheque. <b>Build what the user loves, and solve a problem the buyer will pay for.</b>':'One persona keeps things simple: the person who feels the value also controls the budget.'},
-   {id:'c_user', t:'textarea', q:'User persona: who uses it day to day, and what do they need?', ph:'Dispatchers at local bakeries who spend an hour every morning planning delivery routes by hand…'},
-   {id:'c_buyer', t:'textarea', q:'Buyer persona: who signs off on the budget, and what do they care about?', ph:'The shop owner, who cares about fuel costs and on-time deliveries…', show:s=>s.c_same===false},
+   {id:'c_user', t:'textarea', q:'User persona: who uses it day to day, and what do they need?', ph:'Viewers at home who want something good to watch tonight without searching for ages…'},
+   {id:'c_buyer', t:'textarea', q:'Buyer persona: who signs off on the budget, and what do they care about?', ph:'The account holder who pays the monthly bill and cares about price and who can share the account…', show:s=>s.c_same===false},
    {id:'c_size', t:'multi', q:'Which customer sizes do you target?', opts:['Consumers','SMB','Mid-market','Enterprise'],
     insight:v=>{ if(!v.length) return null;
       const ent=v.includes('Enterprise'), smb=v.includes('SMB')||v.includes('Consumers');
@@ -259,24 +264,34 @@ const CH = [
       return 'Mid-market sits in between: deals big enough for light sales, buyers who still expect fast time-to-value.'}},
    {id:'c_shape', t:'mcq', big:true, q:'Horizontal or vertical?', opts:[['Horizontal','Serves many customer types (e.g. Slack)'],['Vertical','Built for one industry or use case']],
     insight:v=>v==='Horizontal'?'Horizontal products have a big market but face more competitors and fuzzier positioning.':'Vertical products face a smaller market but get sharper positioning, deeper features and higher willingness to pay.'},
-   {id:'c_vertical', t:'text', q:'Which industry or use case?', ph:'e.g. last-mile delivery for independent food shops', show:s=>s.c_shape==='Vertical'},
-   {id:'c_icp', t:'textarea', q:'Your Ideal Customer Profile in one breath', help:'Industry + size + region + the trigger that makes them need you now.', ph:'Independent food shops with 2–10 delivery vans, in mid-sized cities, that just added same-day delivery.'},
-   {id:'c_prio', t:'multi', q:'Because of who they are, the product must prioritize…', opts:['Simple setup','Templates','Guided onboarding','Self-serve','Integrations','Admin & permissions','Security & compliance','Customization','Dedicated support','Mobile'],
-    insight:v=>v.length>5?{warn:true,html:'That is a lot of priorities. If everything is a priority, nothing is. Can you cut to the 3 that most change whether this customer buys?'}:v.length?'These choices say what to <b>simplify</b> and what to <b>support</b>. Hold the roadmap to them.':null}
+   {id:'c_vertical', t:'text', q:'Which industry or use case?', ph:'e.g. on-demand video entertainment', show:s=>s.c_shape==='Vertical'},
+   {id:'c_icp', t:'textarea', q:'Your Ideal Customer Profile in one breath', help:'Industry + size + region + the trigger that makes them need you now.', ph:'Households with fast internet and a smart TV or phone who watch series several nights a week and would rather pay than sit through ads.'},
+   {id:'c_prio', t:'multi', big:true, max:3, q:'Based on who your customer is, what does the product need to prioritize, simplify or support?',
+    help:'Look back at your answers above (who buys, company size, horizontal or vertical). Those choices shape what the product needs to <b>prioritize, simplify, or support</b>. The video\'s example: if you build software for small business owners who probably don\'t have a technical team, you\'ll likely need to prioritize <b>simple setup, templates and guided onboarding</b>. Pick up to 3 for your customer.',
+    opts:[['Simple setup','From the video\'s example: for customers with no technical team'],['Templates','From the video\'s example: a ready-made start'],['Guided onboarding','From the video\'s example: walk them through it'],['Self-serve','They sign up and pay without talking to sales'],['Integrations','It must connect to tools they already use'],['Admin & permissions','Many people use it and someone manages access'],['Security & compliance','IT or legal must approve it before purchase'],['Customization','Every customer\'s process is a bit different'],['Dedicated support','Big accounts expect a person to call'],['Mobile','They work on the go, away from a desk']],
+    suggest:s=>{const z=s.c_size||[],o=new Set();
+      if(z.includes('SMB')||z.includes('Consumers'))['Simple setup','Templates','Guided onboarding','Self-serve'].forEach(x=>o.add(x));
+      if(z.includes('Mid-market'))['Guided onboarding','Integrations','Admin & permissions'].forEach(x=>o.add(x));
+      if(z.includes('Enterprise'))['Security & compliance','Admin & permissions','Integrations','Dedicated support'].forEach(x=>o.add(x));
+      return [...o];},
+    insight:(v,s)=>{if(!v.length)return null;
+      const d=Object.fromEntries(qById('c_prio').opts.map(o=>[o[0],o[1].charAt(0).toLowerCase()+o[1].slice(1)]));
+      const list=v.map(x=>'<b>'+esc(x)+'</b>').join(', ');
+      return 'For this customer, the product should prioritize '+list+'. When a roadmap item doesn\'t help with these, ask whether it can wait.';}}
   ]},
  {id:'landscape', name:'Landscape', sub:'What stops them choosing you?', meta:'Read the meadow', hex:'#c6dff2', deep:'#3f78a8', glyph:'butterfly',
   badge:'Butterfly · Meadow Scout', badgeSub:'You see the whole field: rivals, workarounds, and the option to do nothing.',
   intro:'Customers never judge you in isolation. They compare you with competitors, workarounds, internal tools, and the option to do nothing.',
   lessons:['Incumbents','New entrants','Disruptors','Differentiation','The BlackBerry lesson'],
   qs:[
-   {id:'k_direct', t:'tags', q:'Direct competitors', help:'Type a name and press Enter.', ph:'e.g. RouteRival'},
+   {id:'k_direct', t:'tags', q:'Direct competitors', help:'Type a name and press Enter.', ph:'e.g. Disney+'},
    {id:'k_alts', t:'multi', q:'What else could customers choose instead of you?', opts:['Spreadsheets / manual work','Phone, email or DMs','An in-house tool','Agencies / outsourcing','A big platform bundling it','AI assistants doing the job','Doing nothing'],
     insight:v=>v.includes('Doing nothing')?'If "doing nothing" is an option, the status quo is a competitor. Put a number on what inaction costs them: hours, money, missed hires.':(v.includes('AI assistants doing the job')?'AI assistants are the new entrant in almost every category. What can you do that a general assistant can\'t?':(v.length?'Good. The real field is wider than the logos on a competitor slide.':null))},
-   {id:'k_new', t:'text', q:'Which new entrant or disruptor should you watch?', ph:'A foreign leader entering your market, a platform adding your feature natively…'},
+   {id:'k_new', t:'text', q:'Which new entrant or disruptor should you watch?', ph:'e.g. YouTube and TikTok competing for the same evening hours…'},
    {id:'k_axis', t:'mcq', q:'Your main axis of differentiation', opts:['Price','Experience / UX','Speed','Depth / specialization','Trust & security','Network or data advantage','Distribution'],
     insight:v=>v==='Price'?{warn:true,html:'Competing on price is the hardest position to defend. Someone can always go cheaper. Is there an experience customers would pay more for?'}:'Make sure this axis is something customers value <b>now</b>, and keep watching whether that changes.'},
-   {id:'k_why', t:'textarea', q:'Why do customers pick you over the best alternative?', ph:'In their words, not ours…'},
-   {id:'k_shift', t:'textarea', q:'The BlackBerry check: what do customers value today that could shift tomorrow?', help:'BlackBerry led on keyboards, email and security, until the iPhone moved what customers cared about to touchscreens, apps and UX.', ph:'Today they want the shortest route; tomorrow they may expect live customer tracking…'}
+   {id:'k_why', t:'textarea', q:'Why do customers pick you over the best alternative?', ph:'"There\'s always something new I actually want to watch."'},
+   {id:'k_shift', t:'textarea', q:'What do your customers value most today, and what could change that?', help:'From the video: in the early 2010s BlackBerry held nearly half the US smartphone market because it was built for what customers valued then (physical keyboards, email security, reliability). The iPhone changed what customers cared about: touchscreens, apps and the overall experience. That is why understanding competitors and adapting your roadmap matters.', ph:'Today they want the biggest catalogue; tomorrow they may want live sports, short clips or games…'}
   ]},
  {id:'money', name:'Monetization', sub:'How does it make money?', meta:'Tend the harvest', hex:'#f7eaa6', deep:'#b58e1a', glyph:'honey',
   badge:'Honeypot · Harvest Keeper', badgeSub:'You know how money flows through the product, and whether each customer is worth acquiring.',
@@ -287,7 +302,7 @@ const CH = [
     insight:v=>v.length>1?'Hybrid is normal. Amazon is a marketplace and a subscription business through Prime. Know which model drives most of the revenue.':(v.length?'The model shapes what gets built, how customers adopt it and how the company grows.':null)},
    {id:'m_pricing', t:'multi', q:'Pricing strategy', opts:['Freemium','Free trial','Ad-supported','Pay once','Subscription','Transaction fee','Seat-based','Usage-based'],
     insight:v=>v.includes('Seat-based')&&v.includes('Usage-based')?{warn:true,html:'Seats + usage can confuse buyers. Make sure one of them is clearly the headline price.'}:(v.length?'Good. Next, check that what you charge for matches what customers value.':null)},
-   {id:'m_metric', t:'text', q:'What unit do customers pay for? (value metric)', ph:'per van, per delivery, per seat, per month…'},
+   {id:'m_metric', t:'text', q:'What unit do customers pay for? (value metric)', ph:'per account per month, with plans priced by screens and video quality…'},
    {id:'m_unit', t:'calc', q:'Unit economics: is each customer worth acquiring?', help:'Rough monthly numbers are fine. LTV = monthly revenue per customer × gross margin ÷ monthly churn.', xp:30},
    {id:'m_measured', t:'toggle', q:'Those numbers are measured, not estimated', yes:'Measured', no:'Estimated',
     insight:v=>v===false?{warn:true,html:'Estimates are fine for now. Write down which data you\'d need to measure them; it is a strong ask for your analytics roadmap.'}:'Measured numbers make roadmap arguments much harder to dismiss.'},
@@ -303,10 +318,10 @@ const CH = [
     insight:v=>({'Daily':'Measure retention day by day and week by week. A daily habit is your moat.','Weekly':'Weekly retention is your core health metric.','Monthly':'Use monthly cohorts. A weekly view will look worse than it is.','Seasonal / yearly':'Like tax software, used once a year. Good retention means they come back next season, not next week.','Per project / one-off':'Retention means "come back for the next project" or "recommend us". Measure repeat purchase and referral rate.'})[v]},
    {id:'r_curve', t:'mcq', q:'What does your retention curve look like?', opts:['Flattens out','Keeps declining','Too early to tell','Haven\'t looked'],
     insight:v=>v==='Flattens out'?'A curve that flattens means a group of customers keeps getting value. That is the start of product-market fit.':v==='Keeps declining'?{warn:true,html:'A curve that keeps falling means customers try it, then drift back to old tools. Fix this before spending more on acquisition.'}:v==='Haven\'t looked'?{warn:true,html:'Plot users by signup cohort against % still active. It\'s one of the most useful charts a PM can own.'}:'Early is fine. Decide now which cohort chart you\'ll check first.'},
-   {id:'r_aha', t:'textarea', q:'Activation: the moment a new customer first gets real value', ph:'The first morning a dispatcher sends out an optimized route in under 5 minutes…'},
+   {id:'r_aha', t:'textarea', q:'Activation: the moment a new customer first gets real value', ph:'The first time a new member finishes an episode and the next one starts playing…'},
    {id:'r_when', t:'mcq', q:'When do customers usually churn?', opts:['In the first weeks','After several months','Both','Not sure'],
     insight:v=>v==='In the first weeks'?{warn:true,html:'Early churn points to <b>onboarding or activation</b>: they never reached the aha moment.'}:v==='After several months'?{warn:true,html:'Late churn points to <b>long-term value or monetization</b>: they ran out of use cases, hit free-plan limits, or saw no reason to upgrade.'}:v==='Both'?{warn:true,html:'Two problems, two fixes: activation for early churners, long-term value for later ones. Don\'t solve them with one feature.'}:'Tag every churned account with a reason for the next 30 days. You\'ll have an answer quickly.'},
-   {id:'r_why', t:'textarea', q:'Top reasons customers leave', ph:'1. … 2. … 3. …'},
+   {id:'r_why', t:'textarea', q:'Top reasons customers leave', ph:'1. Finished the show they joined for 2. Price went up 3. Account sharing stopped…'},
    {id:'r_pmf', t:'multi', q:'Product-market fit check: tick what is true today', opts:['We serve a specific, well-defined segment','The problem is painful: they\'d be upset if we disappeared','Customers adopt it consistently without hand-holding','They pay for it, and renew'],
     insight:v=>v.length===4?'All four. That is product-market fit: a specific segment, a painful problem, consistent adoption, and willingness to pay.':v.length>=2?{warn:true,html:v.length+'/4. The unticked boxes are your most important roadmap themes.'}:v.length?{warn:true,html:'Early days. Narrow the segment first; the other boxes get easier once you do.'}:null}
   ]},
@@ -316,15 +331,15 @@ const CH = [
   lessons:['Positioning','Go-to-market','Funnels vs growth loops','Upsell & cross-sell','Network effects'],
   qs:[
    {id:'g_pos', t:'position', q:'Positioning statement', help:'Fill in the blanks. Earlier answers appear as hints.', xp:30},
-   {id:'g_voice', t:'textarea', q:'How do customers describe you, in their own words?', help:'Airbnb began as a cheaper alternative to hotels; customers came to value it for unique, local stays. Airbnb leaned in and gained pricing power.', ph:'"It\'s like having a traffic expert plan my morning…"',
+   {id:'g_voice', t:'textarea', q:'How do customers describe you, in their own words?', help:'Airbnb began as a cheaper alternative to hotels; customers came to value it for unique, local stays. Airbnb leaned in and gained pricing power.', ph:'"It\'s what I put on to relax after work."',
     insight:(v,s)=>v&&v.length>10?'Compare this with your positioning above. Where they differ, customers may be showing you a stronger position.':null},
    {id:'g_channels', t:'multi', q:'Go-to-market channels you rely on', opts:['Sales-led','Paid marketing','Content / SEO','Partnerships','Community','Product-led','Referrals','Events'],
     insight:v=>v.length>4?{warn:true,html:'Early on, most companies win with 1–2 channels done very well. Which one would you double down on?'}:v.length?'Check: does this channel actually reach the buyer persona you described in Customer?':null},
    {id:'g_engine', t:'mcq', big:true, q:'Main acquisition engine', opts:[['Funnel','Users move step by step: see → try → convert'],['Growth loop','Existing users bring in new ones through the product'],['Both','A funnel plus a loop']],
     insight:v=>v==='Funnel'?'A funnel is fine, but it needs constant fuel. Look for a step where one user naturally exposes the product to someone new.':'Loops compound: every Calendly link sent is an ad for Calendly.'},
-   {id:'g_loop', t:'textarea', q:'Describe the loop: how does one user bring the next?', ph:'A customer gets a live tracking link → sees the Acme logo → their own shop signs up…', show:s=>s.g_engine==='Growth loop'||s.g_engine==='Both'},
-   {id:'g_upsell', t:'textarea', q:'Upsell: what better version could an existing customer pay more for?', ph:'Higher plan, more seats, more usage…'},
-   {id:'g_cross', t:'textarea', q:'Cross-sell: what adjacent product could they also buy?', ph:'A van-maintenance tracker for shops already using route planning…'},
+   {id:'g_loop', t:'textarea', q:'Describe the loop: how does one user bring the next?', ph:'A must-watch show trends → friends talk about it → non-members join so they can keep up…', show:s=>s.g_engine==='Growth loop'||s.g_engine==='Both'},
+   {id:'g_upsell', t:'textarea', q:'Upsell: what better version could an existing customer pay more for?', ph:'From the ad-supported plan to Premium with 4K and more screens…'},
+   {id:'g_cross', t:'textarea', q:'Cross-sell: what adjacent product could they also buy?', ph:'Mobile games included in the membership, merchandise from hit shows…'},
    {id:'g_net', t:'mcq', q:'Network effects: does the product get better as more people use it?', opts:['No','Somewhat','Strongly'],
     insight:v=>v==='Strongly'?'Strong network effects (as with LinkedIn or Uber) are among the best moats. Protect the side of the network that is harder to attract.':v==='Somewhat'?'Data network effects count: more usage → better models → a better product. Make that visible to customers.':'That\'s fine. Most products have none. Your moat has to come from differentiation, switching costs or distribution.'}
   ]},
@@ -333,10 +348,10 @@ const CH = [
   intro:'Every feature is a bet, paid for with engineering time, design time, GTM effort and opportunity cost.',
   lessons:['Tie bets to outcomes','Know the field','Keep learning'],
   qs:[
-   {id:'x_bet', t:'text', q:'Your biggest roadmap bet right now', ph:'e.g. Launch live delivery tracking for end customers'},
+   {id:'x_bet', t:'text', q:'Your biggest roadmap bet right now', ph:'e.g. Add live events to the subscription'},
    {id:'x_outcome', t:'multi', q:'Which business outcome does that bet move?', opts:['Revenue','Retention','Efficiency','Expansion','Competitive advantage'],
     insight:v=>v.length>=4?{warn:true,html:'A bet that moves everything usually moves nothing clearly. Choose the one outcome you\'d put on the slide.'}:v.length?'Now say it as one sentence a CFO would nod at: "This bet moves <b>'+v[0].toLowerCase()+'</b> because…"':null},
-   {id:'x_why', t:'textarea', q:'Pitch it in two sentences to a skeptical exec', ph:'We lose X% of trials because… Building Y lifts Z, worth ~$N…'},
+   {id:'x_why', t:'textarea', q:'Pitch it in two sentences to a skeptical exec', ph:'Members cancel between big releases. Weekly live events give them a reason to stay, which protects monthly revenue…'},
    {id:'x_last', t:'mcq', q:'When did you last talk directly to a customer?', opts:['This week','This month','This quarter','Can\'t remember'],
     insight:v=>v==='This week'?'Your opinions carry weight because they come from recent customer conversations.':{warn:true,html:'Book three customer calls this week. Your edge as a PM is being the most informed person in the room, not the smartest.'}},
    {id:'x_know', t:'multi', q:'I honestly know these better than anyone in the room…', opts:['Our customers (better than sales)','Our competitors (better than marketing)','Our market (better than the CEO)'],
@@ -420,24 +435,27 @@ function qHTML(q,i){
   else if(q.t==='textarea') body=`<textarea data-q="${q.id}" placeholder="${esc(q.ph||'')}">${esc(v||'')}</textarea>`;
   else if(q.t==='mcq'||q.t==='multi'){
     const sel = q.t==='multi'?(v||[]):[v];
-    body=`<div class="opts ${q.big?'big':''}">`+q.opts.map(o=>{const val=optVal(o);const lab=Array.isArray(o)?`<b>${esc(o[0])}</b><small>${esc(o[1])}</small>`:esc(o);
-      return `<button class="opt ${sel.includes(val)?'on':''}" data-pick="${q.id}" data-val="${esc(val)}">${q.t==='multi'?'':''}${lab}</button>`;}).join('')+`</div>`;
-    if(q.t==='multi') body=`<div style="font-size:14px;color:var(--muted);margin:-6px 0 8px">Pick all that apply</div>`+body;
+    body=`<div class="opts ${q.big?'big':''} ${q.max?'grid':''}">`+q.opts.map(o=>{const val=optVal(o);const lab=Array.isArray(o)?`<b>${esc(o[0])}</b><small>${esc(o[1])}</small>`:esc(o);
+      return `<button class="opt ${sel.includes(val)?'on':''}" data-pick="${q.id}" data-val="${esc(val)}">${lab}</button>`;}).join('')+`</div>`;
+    if(q.t==='multi') body=`<div style="font-size:14px;color:var(--muted);margin:-6px 0 8px">${q.max?'Pick up to '+q.max+' · tap again to unselect':'Pick all that apply'}<span class="sugnote" data-sugnote="${q.id}"></span></div>`+body;
   }
   else if(q.t==='toggle') body=`<div class="toggle"><div class="tg"><button class="${v===true?'on':''}" data-tog="${q.id}" data-val="1">${q.yes}</button><button class="${v===false?'on':''}" data-tog="${q.id}" data-val="0">${q.no}</button></div></div>`;
   else if(q.t==='scale') body=`<div class="scale">${[1,2,3,4,5].map(n=>`<button class="${v===n?'on':''}" data-scale="${q.id}" data-val="${n}">${n}</button>`).join('')}<div class="ends"><span>${q.ends[0]}</span><span>${q.ends[1]}</span></div></div>`;
   else if(q.t==='tags') body=`<div class="tags" data-tagbox="${q.id}">${(v||[]).map((t,k)=>`<span class="chip">${esc(t)}<button data-untag="${q.id}" data-i="${k}" aria-label="remove">×</button></span>`).join('')}<input type="text" data-tagin="${q.id}" placeholder="${esc(q.ph||'')}"></div>`;
   else if(q.t==='calc'){const c=v||{};
     const f=(k,l,ph)=>`<div><label>${l}</label><input type="number" min="0" step="any" data-calc="${k}" value="${esc(c[k]??'')}" placeholder="${ph}"></div>`;
-    body=`<div class="calc">${f('arpa','Revenue / customer / month ($)','500')}${f('gm','Gross margin (%)','75')}${f('churn','Monthly churn (%)','3')}${f('cac','Cost to acquire (CAC, $)','3000')}</div><div class="calcout" id="calcout"></div>`;}
+    body=`<div class="calc">${f('arpa','Revenue / customer / month ($)','15')}${f('gm','Gross margin (%)','40')}${f('churn','Monthly churn (%)','2.5')}${f('cac','Cost to acquire (CAC, $)','60')}</div><div class="calcout" id="calcout"></div>`;}
   else if(q.t==='position'){const p=v||{};
     const hint={target:A.c_icp?A.c_icp.split(/[,.]/)[0]:'target customer',need:'pain / need',category:A.m_models&&A.m_models[0]?A.m_models[0]+' product':'category',benefit:'key benefit',alt:(A.k_direct&&A.k_direct[0])||(A.k_alts&&A.k_alts[0])||'main alternative',diff:A.k_why?A.k_why.slice(0,40):'what makes you different'};
     const inp=k=>`<input type="text" data-pos="${k}" value="${esc(p[k]||'')}" placeholder="${esc(hint[k])}">`;
     body=`<div class="pos">For ${inp('target')} who ${inp('need')}, <b>${esc(A.p_name||'our product')}</b> is a ${inp('category')} that ${inp('benefit')}. Unlike ${inp('alt')}, we ${inp('diff')}.</div>`;}
   return `<div class="card sketch ${answered(q)?'answered':''}" data-card="${q.id}" style="${visible(q)?'':'display:none'}">
     <div class="qhead"><div class="qnum">${i+1}</div><div><div class="qtitle">${q.q}</div>${q.help?`<div class="qhelp">${q.help}</div>`:''}</div><span class="xptag">+${qxp(q)} seeds</span></div>
-    ${body}<div class="insight" data-ins="${q.id}"></div></div>`;
+    ${body}${q.max?'<div class="maxnote"></div>':''}<div class="insight" data-ins="${q.id}"></div></div>`;
 }
+function updateSuggest(){ALL_Q.filter(q=>q.suggest).forEach(q=>{const card=document.querySelector(`[data-card="${q.id}"]`);if(!card)return;const sg=q.suggest(A);
+  card.querySelectorAll('.opt').forEach(o=>o.classList.toggle('sug',sg.includes(o.dataset.val)));
+  const n=card.querySelector('[data-sugnote]');if(n)n.innerHTML=sg.length?' · <span class="sugdot"></span> = suggested for the customer sizes you picked':' · pick customer sizes above to see suggestions';});}
 function renderInsight(q){
   const el=document.querySelector(`[data-ins="${q.id}"]`); if(!el) return;
   let out=null;
@@ -477,7 +495,7 @@ function render(){
     ${c.qs.map((q,i)=>qHTML(q,i)).join('')}
     <div class="pager"><button class="btn ghost" ${idx?'':'disabled'} data-go="${idx?CH[idx-1].id:''}">← Back</button>
     <button class="btn" data-go="${CH[idx+1]?CH[idx+1].id:'brief'}">${CH[idx+1]?'Wander on to '+CH[idx+1].name+' →':'Gather the harvest →'}</button></div>`;
-  c.qs.forEach(renderInsight);
+  c.qs.forEach(renderInsight); updateSuggest();
 }
 function refresh(q, evEl){
   const c=CH.find(x=>x.id===cur);
@@ -487,7 +505,7 @@ function refresh(q, evEl){
   renderInsight(q);
   // dependent insights
   c.qs.forEach(qq=>{if(qq!==q&&qq.insight&&qq.insight.length>1) renderInsight(qq);});
-  save(); renderSide();
+  updateSuggest(); save(); renderSide();
   const after=totals().xp;
   if(after>before && evEl) floatXP(evEl,after-before);
   checkBadges();
@@ -500,7 +518,9 @@ document.addEventListener('click',e=>{
   let b=e.target.closest('[data-pick]');
   if(b){const q=qById(b.dataset.pick),val=b.dataset.val;
     if(q.t==='mcq'){A[q.id]=A[q.id]===val?undefined:val; b.parentNode.querySelectorAll('.opt').forEach(o=>o.classList.toggle('on',o.dataset.val===A[q.id]));}
-    else{const arr=A[q.id]||[];const k=arr.indexOf(val);k>=0?arr.splice(k,1):arr.push(val);A[q.id]=arr;b.classList.toggle('on',k<0);}
+    else{const arr=A[q.id]||[];const k=arr.indexOf(val);
+      if(k<0&&q.max&&arr.length>=q.max){const n=b.closest('.card').querySelector('.maxnote');n.textContent='You already picked '+q.max+'. Unselect one to swap it in.';n.style.display='block';setTimeout(()=>n.style.display='none',2600);return;}
+      k>=0?arr.splice(k,1):arr.push(val);A[q.id]=arr;b.classList.toggle('on',k<0);}
     return refresh(q,b);}
   b=e.target.closest('[data-tog]');
   if(b){const q=qById(b.dataset.tog);const val=b.dataset.val==='1';A[q.id]=A[q.id]===val?undefined:val;
@@ -566,7 +586,7 @@ const short=q=>q.q.replace(/\s*\(.*?\)\s*/g,' ').replace(/:.*$/,'').replace(/…
 function blindSpots(){
   const out=[];const u=unit();
   if(A.c_same===false && !answered(qById('c_buyer'))) out.push('Users and buyers are different people, but the buyer persona is blank.');
-  if((A.c_prio||[]).length>5) out.push('More than 5 product priorities for your customer. Cut to the 3 that decide the purchase.');
+  
   if((A.k_alts||[]).includes('Doing nothing')) out.push('"Doing nothing" is a real competitor. Quantify the cost of inaction in your pitch.');
   if(A.k_axis==='Price') out.push('Differentiating on price is hard to defend. Look for an experience customers will pay more for.');
   if(u&&u.ratio!=null&&u.ratio<3) out.push(`LTV:CAC is ${u.ratio.toFixed(1)}×, below the 3× rule of thumb. Work on retention, pricing or cheaper acquisition.`);
