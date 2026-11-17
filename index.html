@@ -138,7 +138,10 @@ textarea::placeholder,input::placeholder{color:#aaa395}
 .stat .v{font-size:28px;font-weight:600;line-height:1.2}
 .stat.good{background:#e3f2df}.stat.bad{background:#fbe0e4}.stat.mid{background:#fbf2c8}
 .pos{line-height:2.5;font-size:18px}
-.pos input{display:inline-block;width:auto;min-width:160px;padding:0 6px;margin:0 2px}
+.pos .blank{border-bottom:1.6px solid var(--ink);padding:0 4px;outline:none;background:#fffbe6;border-radius:2px;min-width:60px;display:inline}
+.pos .blank:focus{background:#fdf0b8}
+.pos .blank:empty::before{content:attr(data-ph);color:#aaa395}
+.prenote{font-size:15px;color:var(--muted);margin:-4px 0 6px}
 .pager{display:flex;justify-content:space-between;margin-top:26px;gap:10px}
 .btn{border:1.7px solid var(--ink);border-radius:var(--r2);padding:9px 22px;font-weight:600;background:#f7e496;color:var(--ink);box-shadow:3px 3px 0 var(--ink);font-size:17px}
 .btn:hover{transform:rotate(-1deg)}
@@ -271,8 +274,8 @@ const CH = [
     insight:v=>v==='Horizontal'?'Horizontal products have a big market but face more competitors and fuzzier positioning.':'Vertical products face a smaller market but get sharper positioning, deeper features and higher willingness to pay.'},
    {id:'c_vertical', t:'text', q:'Which industry or use case?', ph:'e.g. on-demand video entertainment', show:s=>s.c_shape==='Vertical'},
    {id:'c_icp', t:'textarea', q:'Your Ideal Customer Profile in one breath', help:'Industry + size + region + the trigger that makes them need you now.', ph:'Households with fast internet and a smart TV or phone who watch series several nights a week and would rather pay than sit through ads.'},
-   {id:'c_prio', t:'multi', big:true, max:3, q:'Based on who your customer is, what does the product need to prioritize, simplify or support?',
-    help:'Look back at your answers above (who buys, company size, horizontal or vertical). Those choices shape what the product needs to <b>prioritize, simplify, or support</b>. The video\'s example: if you build software for small business owners who probably don\'t have a technical team, you\'ll likely need to prioritize <b>simple setup, templates and guided onboarding</b>. Pick up to 3 for your customer.',
+   {id:'c_prio', t:'multi', big:true, max:3, q:'Based on who your customer is, what does the product need to prioritize?',
+    help:'i.e. If you build Shopify for small business owners who probably don\'t have a technical team, you\'ll likely need to prioritize <b>simple setup, templates and guided onboarding</b>. Pick up to 3 for your customer.',
     opts:[['Simple setup','From the video\'s example: for customers with no technical team'],['Templates','From the video\'s example: a ready-made start'],['Guided onboarding','From the video\'s example: walk them through it'],['Self-serve','They sign up and pay without talking to sales'],['Integrations','It must connect to tools they already use'],['Admin & permissions','Many people use it and someone manages access'],['Security & compliance','IT or legal must approve it before purchase'],['Customization','Every customer\'s process is a bit different'],['Dedicated support','Big accounts expect a person to call'],['Mobile','They work on the go, away from a desk']],
     suggest:s=>{const z=s.c_size||[],o=new Set();
       if(z.includes('SMB')||z.includes('Consumers'))['Simple setup','Templates','Guided onboarding','Self-serve'].forEach(x=>o.add(x));
@@ -335,7 +338,7 @@ const CH = [
   intro:'The best product doesn\'t always win. It has to be positioned well and sold to the right people.',
   lessons:['Positioning','Go-to-market','Funnels vs growth loops','Upsell & cross-sell','Network effects'],
   qs:[
-   {id:'g_pos', t:'position', q:'Positioning statement', help:'Fill in the blanks. Earlier answers appear as hints.', xp:30},
+   {id:'g_pos', t:'position', q:'Positioning statement', help:'Fill in or edit each underlined part.', xp:30},
    {id:'g_voice', t:'textarea', q:'How do customers describe you, in their own words?', help:'Airbnb began as a cheaper alternative to hotels; customers came to value it for unique, local stays. Airbnb leaned in and gained pricing power.', ph:'"It\'s what I put on to relax after work."',
     insight:(v,s)=>v&&v.length>10?'Compare this with your positioning above. Where they differ, customers may be showing you a stronger position.':null},
    {id:'g_channels', t:'multi', q:'Go-to-market channels you rely on', opts:['Sales-led','Paid marketing','Content / SEO','Partnerships','Community','Product-led','Referrals','Events'],
@@ -453,9 +456,9 @@ function qHTML(q,i){
     const f=(k,l,ph)=>`<div><label>${l}</label><input type="number" min="0" step="any" data-calc="${k}" value="${esc(c[k]??'')}" placeholder="${ph}"></div>`;
     body=`<div class="calc">${f('arpa','Revenue / customer / month ($)','15')}${f('gm','Gross margin (%)','40')}${f('churn','Monthly churn (%)','2.5')}${f('cac','Cost to acquire (CAC, $)','60')}</div><div class="calcout" id="calcout"></div>`;}
   else if(q.t==='position'){const p=v||{};
-    const hint={target:A.c_icp?A.c_icp.split(/[,.]/)[0]:'target customer',need:'pain / need',category:A.m_models&&A.m_models[0]?A.m_models[0]+' product':'category',benefit:'key benefit',alt:(A.k_direct&&A.k_direct[0])||(A.k_alts&&A.k_alts[0])||'main alternative',diff:A.k_why?A.k_why.slice(0,40):'what makes you different'};
-    const inp=k=>`<input type="text" data-pos="${k}" value="${esc(p[k]||'')}" placeholder="${esc(hint[k])}">`;
-    body=`<div class="pos">For ${inp('target')} who ${inp('need')}, <b>${esc(A.p_name||'our product')}</b> is a ${inp('category')} that ${inp('benefit')}. Unlike ${inp('alt')}, we ${inp('diff')}.</div>`;}
+    const ph={target:'who it is for',need:'their need',category:'type of product',benefit:'key benefit',alt:'main alternative',diff:'what makes you different'};
+    const blank=k=>`<span class="blank" contenteditable="true" spellcheck="false" data-pos="${k}" data-ph="${esc(ph[k])}">${esc(p[k]||'')}</span>`;
+    body=`${p.__pre?'<div class="prenote">We pre-filled this from your earlier answers. Click any underlined part to edit it.</div>':''}<div class="pos">For ${blank('target')} who ${blank('need')}, <b>${esc(A.p_name||'our product')}</b> is a ${blank('category')} that ${blank('benefit')}. Unlike ${blank('alt')}, we ${blank('diff')}.</div>`;}
   return `<div class="card sketch ${answered(q)?'answered':''}" data-card="${q.id}" style="${visible(q)?'':'display:none'}">
     <div class="qhead"><div class="qnum">${i+1}</div><div><div class="qtitle">${q.q}</div>${q.help?`<div class="qhelp">${q.help}</div>`:''}</div><span class="xptag">+${qxp(q)} seeds</span></div>
     ${body}${q.max?'<div class="maxnote"></div>':''}<div class="insight" data-ins="${q.id}"></div></div>`;
@@ -490,7 +493,19 @@ function calcInsight(){
 }
 
 /* ---------------- Page render ---------------- */
+function prefillPos(){
+  const P=A.g_pos=A.g_pos||{};let did=false;
+  const set=(k,v)=>{v=(v||'').trim().replace(/[.……]+$/,'');if(P[k]===undefined&&v){P[k]=v;did=true;}};
+  const u=A.c_user||'', w=u.split(/\s+who\s+/i);
+  if(w.length>1){set('target',w[0].replace(/^([A-Z])(?=[a-z])/,c=>c.toLowerCase()));set('need',w.slice(1).join(' who '));} else set('target',u||A.c_icp);
+  const o=(A.p_oneliner||'').replace(/^(a|an|the)\s+/i,''), m=o.match(/^(.*?)\s+(that|which|where)\s+(.*)$/i);
+  if(m){set('category',m[1]);set('benefit',(m[2].toLowerCase()==='where'?'lets ':'')+m[3]);}
+  set('alt',(A.k_direct&&A.k_direct[0])||(A.k_alts&&A.k_alts[0])||A.k_alts__other);
+  set('diff',A.k_axis?'win on '+({'Price':'price','Experience / UX':'the experience','Speed':'speed','Depth / specialization':'depth and specialization','Trust & security':'trust and security','Network or data advantage':'our network and data','Distribution':'distribution'}[A.k_axis]||A.k_axis.toLowerCase()):(A.k_why||'').replace(/^["“]|["”]$/g,''));
+  if(did){P.__pre=true;save();}
+}
 function render(){
+  if(cur==='growth') prefillPos();
   renderSide();
   if(cur==='brief') return renderBrief();
   const c=CH.find(x=>x.id===cur); const idx=CH.indexOf(c);
@@ -546,7 +561,7 @@ document.addEventListener('input',e=>{
   if(t.dataset.q){const q=qById(t.dataset.q);A[q.id]=t.value;return refresh(q,t);}
   if(t.dataset.other){const q=qById(t.dataset.other);A[q.id+'__other']=t.value;return refresh(q,t);}
   if(t.dataset.calc){A.m_unit=A.m_unit||{};A.m_unit[t.dataset.calc]=t.value;return refresh(qById('m_unit'),t);}
-  if(t.dataset.pos){A.g_pos=A.g_pos||{};A.g_pos[t.dataset.pos]=t.value;return refresh(qById('g_pos'),t);}
+  if(t.dataset.pos){A.g_pos=A.g_pos||{};A.g_pos[t.dataset.pos]=t.isContentEditable?t.innerText.replace(/\n/g,' ').trim():t.value;return refresh(qById('g_pos'),t);}
 });
 function addTag(t){const val=t.value.trim().replace(/,$/,'').trim();t.value='';if(!val)return;const q=qById(t.dataset.tagin);
   A[q.id]=A[q.id]||[];if(A[q.id].includes(val))return refresh(q,null);A[q.id].push(val);
@@ -632,9 +647,10 @@ function renderBrief(){
     ${CH.slice(1).map(c=>`<h3><i style="background:${c.hex}"></i>${c.name}</h3><dl>${c.qs.filter(visible).map(q=>`<dt>${short(q)}</dt><dd>${fmt(q)}</dd>`).join('')}</dl>`).join('')}
     <h3><i style="background:#c08a2a"></i>Weeds to pull &amp; next moves</h3>
     <ul class="spots">${spots.length?spots.map(s=>`<li>${esc(s)}</li>`).join(''):'<li class="ok">No weeds spotted. Your garden is thriving.</li>'}</ul>
-    <div class="brief-actions"><button class="btn" id="copyMd">Copy as Markdown</button><button class="btn ghost" data-go="profile">Edit answers</button><span class="copied" id="copied"></span></div>
+    <div class="brief-actions"><button class="btn" id="pdfBtn">Download PDF</button><button class="btn ghost" id="copyMd">Copy as text</button><button class="btn ghost" data-go="profile">Edit answers</button><span class="copied" id="copied"></span></div>
     <textarea class="export" id="exportBox" readonly></textarea>
    </div>`;
+  $('#pdfBtn').onclick=downloadPdf;
   $('#copyMd').onclick=async()=>{
     let md=`# Business Brief: ${title}\n\n${A.p_oneliner||''}${A.p_stage?'\nStage: '+A.p_stage:''}\n`;
     CH.slice(1).forEach(c=>{md+=`\n## ${c.name}\n`;c.qs.filter(visible).forEach(q=>{md+=`- **${short(q)}:** ${plain(fmt(q))}\n`;});});
@@ -642,6 +658,27 @@ function renderBrief(){
     try{await navigator.clipboard.writeText(md);$('#copied').textContent='Copied to clipboard';}
     catch(e){const b=$('#exportBox');b.style.display='block';b.value=md;b.select();$('#copied').textContent='Select all and copy the text below';}
   };
+}
+
+/* ---------------- PDF ---------------- */
+const loadJs=src=>new Promise((ok,no)=>{if(document.querySelector(`script[src="${src}"]`))return ok();const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s);});
+async function downloadPdf(){
+  const msg=$('#copied'), btn=$('#pdfBtn');
+  btn.disabled=true; msg.textContent='Preparing your PDF…';
+  try{
+    await loadJs('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    await loadJs('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    const el=$('#briefDoc');
+    const cv=await html2canvas(el,{scale:2,backgroundColor:'#fffdf7',ignoreElements:n=>n.classList&&(n.classList.contains('brief-actions')||n.classList.contains('export'))});
+    const w=cv.width/2,h=cv.height/2,pad=24;
+    const pdf=new jspdf.jsPDF({orientation:'portrait',unit:'px',format:[w+pad*2,h+pad*2],hotfixes:['px_scaling']});
+    pdf.setFillColor(251,248,241);pdf.rect(0,0,w+pad*2,h+pad*2,'F');
+    pdf.addImage(cv.toDataURL('image/jpeg',0.92),'JPEG',pad,pad,w,h);
+    const name=((A.p_name||'my-product').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'my-product')+'-business-garden.pdf';
+    pdf.save(name);
+    msg.textContent='Downloaded '+name+'. If nothing appeared, downloads may be blocked here: open the site directly in your browser.';
+  }catch(e){msg.textContent='Could not create the PDF here. Open the site directly in your browser and try again.';}
+  btn.disabled=false;
 }
 
 /* ---------------- Reset ---------------- */
