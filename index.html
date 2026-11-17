@@ -174,6 +174,7 @@ textarea.export{min-height:200px;font-family:inherit;font-size:15px;margin-top:1
 /* toast */
 .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,160%);background:#fffdf7;color:var(--ink);border-radius:var(--r2);padding:14px 22px 14px 14px;display:flex;gap:14px;align-items:center;border:1.8px solid var(--ink);box-shadow:5px 5px 0 var(--ink);transition:transform .45s cubic-bezier(.2,1.4,.4,1);z-index:50;max-width:92vw}
 .toast.show{transform:translate(-50%,0) rotate(-1deg)}
+.toast:not(.show){visibility:hidden;transition:transform .45s,visibility 0s .45s}
 .toast .medal{width:62px;flex:none;border:1.6px solid var(--ink)}
 .toast .medal svg{filter:none;opacity:1}
 .toast small{display:block;color:var(--muted);font-size:14px}
@@ -189,14 +190,51 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:60}
 .modal .row{display:flex;gap:12px;justify-content:flex-end;margin-top:18px}
 @media (max-height:920px){.side{position:static}}
 @media (max-width:860px){
-  .app{grid-template-columns:1fr;padding:12px;gap:14px}
-  .side{position:static;max-height:none;transform:none}
+  .app{grid-template-columns:minmax(0,1fr);padding:10px;gap:12px}
+  .side{position:static;max-height:none;transform:none;min-width:0;padding:18px 14px;gap:12px}
+  .side .brand b{font-size:20px}
+  .xpcard{padding:10px 12px}
+  .xpcard .lvlname{font-size:18px;margin-bottom:6px}
+  .nav{min-width:0;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+  .nav::-webkit-scrollbar{display:none}
+  .nav button{padding:6px 10px;gap:6px}
+  .nav .ring{width:24px;height:24px}
+  .badgeshelf{grid-template-columns:repeat(8,minmax(0,38px));gap:6px}
+  .shelflabel{margin-bottom:4px;font-size:13px}
+  main{padding:26px 16px 50px}
+  .hero{padding:20px 18px}
+  .hero .bigglyph{width:56px;height:56px;right:14px;top:14px}
+  .hero h1{font-size:24px;max-width:78%}
+  .hero p{font-size:16px}
+  .lesson{font-size:14px}
+  .card{padding:16px 14px}
+  .card:nth-of-type(odd),.card:nth-of-type(even){transform:none}
+  .qhead{flex-wrap:wrap;gap:8px}
+  .qhead>div:nth-child(2){flex:1 1 calc(100% - 44px);min-width:0}
+  .xptag{order:3;margin-left:38px}
+  .qtitle{font-size:17px}
+  .opts.big .opt{flex:1 1 100%}
+  .opts.grid{grid-template-columns:1fr 1fr;gap:8px}
+  .opts.grid .opt{padding:8px 10px;font-size:15px}
+  .opts.grid .opt small{font-size:13px;line-height:1.3}
+  .pos{font-size:16px;line-height:2.2}
+  .pager .btn{padding:9px 14px;font-size:15px}
+  .brief{padding:20px 16px}
+  .brief h2{font-size:26px}
+  .trophy{padding:14px 16px}
+  .tags input{min-width:100px}
+  .addtag kbd{display:none}
+  body{background-attachment:scroll}
+  .toast{left:12px;right:12px;transform:translateY(160%);max-width:none}
+  .toast.show{transform:translateY(0)}
   .nav{flex-direction:row;overflow-x:auto}
   .nav button{flex:none;width:auto}
   .nav .lbl small{display:none}
-  .badgeshelf{grid-template-columns:repeat(8,1fr)}
   .calc{grid-template-columns:repeat(2,1fr)}
-  .calcout{grid-template-columns:1fr}
+  .calcout{grid-template-columns:repeat(3,1fr);gap:6px}
+  .stat{padding:8px 8px}
+  .stat .v{font-size:20px}
+  .stat .k{font-size:12px;line-height:1.25}
   .brief dl{grid-template-columns:1fr}
   .brief dt{margin-top:6px}
   .sidefoot{display:none}
@@ -424,6 +462,7 @@ function renderSide(){
   $('#nav').innerHTML = CH.map((c,i)=>{const s=chStats(c);const p=s.n?s.d/s.n:0;
     return `<button data-go="${c.id}" class="${cur===c.id?'on':''} ${p>=1?'done':''}">${ring(p,c.deep)}<span class="lbl">${i?i+'. ':''}${c.name}<small>${c.sub}</small></span><span class="chk" style="background:${c.hex}">✓</span></button>`;}).join('')
    + `<button data-go="brief" class="${cur==='brief'?'on':''}"><span class="ring">${dd('basket')}</span><span class="lbl">Harvest Basket<small>Your Business Brief + weeds to pull</small></span></button>`;
+  {const nav=$('#nav'),on=nav.querySelector('.on');if(on&&nav.scrollWidth>nav.clientWidth)nav.scrollLeft=on.offsetLeft-nav.offsetLeft-(nav.clientWidth-on.offsetWidth)/2;}
   const t=totals(), li=level(t.pct);
   $('#lvlNum').textContent=li+1+' of '+LEVELS.length; $('#lvlName').textContent=LEVELS[li][1];
   $('#xpNow').textContent=t.xp+' / '+t.max+' seeds';
