@@ -52,6 +52,10 @@ input,textarea{font:inherit;color:inherit}
 .nav .lbl small{display:block;color:var(--muted);font-size:14px;font-weight:400}
 .nav .chk{font-size:14px;color:var(--ink);width:22px;height:22px;border-radius:50%;display:grid;place-items:center;visibility:hidden;border:1.5px solid var(--ink)}
 .nav button.done .chk{visibility:visible}
+.musicbtn{border:1.5px solid var(--ink);background:#fffdf7;border-radius:var(--r2);padding:4px 14px;margin:0 0 14px;box-shadow:2px 2px 0 var(--ink);font-size:15px}
+.musicbtn[aria-pressed=true]{background:#decef2}
+.musicbtn[aria-pressed=true] .note{display:inline-block;animation:bob 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-3px) rotate(8deg)}}
 .shelflabel{font-size:14px;color:var(--muted);margin-bottom:8px}
 .badgeshelf{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .medal{aspect-ratio:1;border-radius:50% 46% 52% 48%;display:grid;place-items:center;background:#ece7dc;position:relative;transition:.4s;border:1.6px dashed #b9b1a3}
@@ -218,6 +222,7 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:60}
     </div>
     <nav class="nav" id="nav"></nav>
     <div>
+      <button class="musicbtn" id="musicBtn" type="button" aria-pressed="false"><span class="note">♪</span> <span id="musicLbl">Play garden music</span></button>
       <div class="shelflabel">Your garden</div>
       <div class="badgeshelf" id="shelf"></div>
     </div>
@@ -680,6 +685,25 @@ async function downloadPdf(){
   }catch(e){msg.textContent='Could not create the PDF here. Open the site directly in your browser and try again.';}
   btn.disabled=false;
 }
+
+/* ---------------- Music (generated in the browser, no audio files) ---------------- */
+const Music=(()=>{let ctx,master,timer,step=0,next=0,on=false;
+  const N=m=>440*Math.pow(2,(m-69)/12);
+  const prog=[[60,64,67,72],[57,60,64,69],[53,57,60,65],[55,59,62,67]];
+  const pat=[0,2,1,3,2,1,3,2, 0,1,2,3,1,2,0,1];
+  function bell(t,f,v){const g=ctx.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+0.006);g.gain.exponentialRampToValueAtTime(0.0001,t+1.6);g.connect(master);
+    [[1,1],[2.01,0.35],[3.98,0.08]].forEach(([r,a])=>{const o=ctx.createOscillator(),og=ctx.createGain();o.type='sine';o.frequency.value=f*r;og.gain.value=a;o.connect(og).connect(g);o.start(t);o.stop(t+1.7);});}
+  function pad(t,ch){const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=900;const g=ctx.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.035,t+0.6);g.gain.linearRampToValueAtTime(0,t+2.9);lp.connect(g).connect(master);
+    ch.slice(0,3).forEach(m=>{const o=ctx.createOscillator();o.type='triangle';o.frequency.value=N(m-12);o.connect(lp);o.start(t);o.stop(t+3);});}
+  function tick(){const spb=60/88/2;while(next<ctx.currentTime+0.2){const bar=Math.floor(step/8)%4,ch=prog[bar],i=step%8;
+      if(i===0)pad(next,ch);
+      if(Math.random()>0.18)bell(next,N(ch[pat[(step+bar)%16]]+12),0.07+Math.random()*0.03);
+      if(i===7&&Math.random()>0.5)bell(next+spb/2,N(ch[3]+12+2),0.04);
+      step++;next+=spb;}}
+  return{toggle(){if(!ctx){ctx=new (window.AudioContext||window.webkitAudioContext)();master=ctx.createGain();master.gain.value=0.8;master.connect(ctx.destination);}
+      on=!on;if(on){ctx.resume();next=ctx.currentTime+0.05;timer=setInterval(tick,50);}else{clearInterval(timer);ctx.suspend();}return on;}};})();
+document.addEventListener('click',e=>{if(!e.target.closest('#musicBtn'))return;let on=false;try{on=Music.toggle();}catch(x){}
+  const b=$('#musicBtn');b.setAttribute('aria-pressed',on);$('#musicLbl').textContent=on?'Music on (tap to pause)':'Play garden music';});
 
 /* ---------------- Reset ---------------- */
 $('#resetBtn').onclick=()=>$('#modal').classList.add('show');
