@@ -31,7 +31,7 @@ input,textarea{font:inherit;color:inherit}
 .sketch::before{content:'';position:absolute;inset:0;border:1.7px solid var(--ink);border-radius:var(--r1);filter:url(#rough);pointer-events:none}
 .app{display:grid;grid-template-columns:290px 1fr;gap:26px;padding:26px;min-height:100vh;align-items:start}
 /* sidebar */
-.side{position:sticky;top:26px;max-height:calc(100vh - 52px);overflow:auto;padding:30px 22px;display:flex;flex-direction:column;gap:18px;transform:rotate(-.6deg)}
+.side{position:sticky;top:26px;padding:30px 22px;display:flex;flex-direction:column;gap:18px;transform:rotate(-.6deg)}
 .brand{display:flex;gap:10px;align-items:center}
 .brand .logo{width:46px;height:46px;flex:none}
 .brand b{display:block;font-size:22px;line-height:1.1;color:var(--rust);font-weight:600}
@@ -180,6 +180,7 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:60}
 .modal .box{padding:26px;max-width:400px;border-radius:var(--r1)}
 .modal h3{font-size:22px}
 .modal .row{display:flex;gap:12px;justify-content:flex-end;margin-top:18px}
+@media (max-height:920px){.side{position:static}}
 @media (max-width:860px){
   .app{grid-template-columns:1fr;padding:12px;gap:14px}
   .side{position:static;max-height:none;transform:none}
@@ -291,7 +292,7 @@ const CH = [
    {id:'k_axis', t:'mcq', q:'Your main axis of differentiation', opts:['Price','Experience / UX','Speed','Depth / specialization','Trust & security','Network or data advantage','Distribution'],
     insight:v=>v==='Price'?{warn:true,html:'Competing on price is the hardest position to defend. Someone can always go cheaper. Is there an experience customers would pay more for?'}:'Make sure this axis is something customers value <b>now</b>, and keep watching whether that changes.'},
    {id:'k_why', t:'textarea', q:'Why do customers pick you over the best alternative?', ph:'"There\'s always something new I actually want to watch."'},
-   {id:'k_shift', t:'textarea', q:'What do your customers value most today, and what could change that?', help:'From the video: in the early 2010s BlackBerry held nearly half the US smartphone market because it was built for what customers valued then (physical keyboards, email security, reliability). The iPhone changed what customers cared about: touchscreens, apps and the overall experience. That is why understanding competitors and adapting your roadmap matters.', ph:'Today they want the biggest catalogue; tomorrow they may want live sports, short clips or games…'}
+   {id:'k_shift', t:'textarea', q:'What do customers value today, and what could a competitor make them value instead?', help:'From the video: BlackBerry won nearly half the US smartphone market by giving business users what they valued then: physical keyboards, email security and reliability. Then the iPhone made people care about touchscreens, apps and ease of use, and BlackBerry\'s strengths stopped mattering. The point: know what your customers value now, and watch for the competitor that could change it.', ph:'Today: a huge catalogue of series to binge. Could shift to: live sports and short videos, if YouTube or TikTok make those the reason people pay.'}
   ]},
  {id:'money', name:'Monetization', sub:'How does it make money?', meta:'Tend the harvest', hex:'#f7eaa6', deep:'#b58e1a', glyph:'honey',
   badge:'Honeypot · Harvest Keeper', badgeSub:'You know how money flows through the product, and whether each customer is worth acquiring.',
@@ -322,8 +323,8 @@ const CH = [
    {id:'r_when', t:'mcq', q:'When do customers usually churn?', opts:['In the first weeks','After several months','Both','Not sure'],
     insight:v=>v==='In the first weeks'?{warn:true,html:'Early churn points to <b>onboarding or activation</b>: they never reached the aha moment.'}:v==='After several months'?{warn:true,html:'Late churn points to <b>long-term value or monetization</b>: they ran out of use cases, hit free-plan limits, or saw no reason to upgrade.'}:v==='Both'?{warn:true,html:'Two problems, two fixes: activation for early churners, long-term value for later ones. Don\'t solve them with one feature.'}:'Tag every churned account with a reason for the next 30 days. You\'ll have an answer quickly.'},
    {id:'r_why', t:'textarea', q:'Top reasons customers leave', ph:'1. Finished the show they joined for 2. Price went up 3. Account sharing stopped…'},
-   {id:'r_pmf', t:'multi', q:'Product-market fit check: tick what is true today', opts:['We serve a specific, well-defined segment','The problem is painful: they\'d be upset if we disappeared','Customers adopt it consistently without hand-holding','They pay for it, and renew'],
-    insight:v=>v.length===4?'All four. That is product-market fit: a specific segment, a painful problem, consistent adoption, and willingness to pay.':v.length>=2?{warn:true,html:v.length+'/4. The unticked boxes are your most important roadmap themes.'}:v.length?{warn:true,html:'Early days. Narrow the segment first; the other boxes get easier once you do.'}:null}
+   {id:'r_pmf', t:'multi', q:'Product-market fit check: tick what is true today', help:'From the video: product-market fit means you found a specific customer segment, a painful problem, and a product that solves it well enough that customers consistently adopt it and are willing to pay for it.', opts:['We serve a specific customer segment','We solve a painful problem for them','Customers consistently adopt the product','Customers are willing to pay for it'],
+    insight:v=>v.length===4?'All four parts of the video\'s definition are true. That is product-market fit.':v.length?{warn:true,html:v.length+' of 4 parts of the definition are true today. <b>Our tip:</b> the parts you left unticked are where to focus next.'}:null}
   ]},
  {id:'growth', name:'Growth', sub:'How does it grow?', meta:'Spread the seeds', hex:'#f9d0b0', deep:'#c46a33', glyph:'sunflower',
   badge:'Sunflower · Seed Spreader', badgeSub:'You can position the product, name the engine that brings customers in, and grow revenue from existing ones.',
@@ -597,7 +598,7 @@ function blindSpots(){
   if(A.r_curve==='Haven\'t looked') out.push('Nobody has looked at the retention curve. Build a cohort chart.');
   if(A.r_when==='In the first weeks'||A.r_when==='Both') out.push('Early churn: invest in onboarding and the activation moment.');
   if(A.r_when==='After several months'||A.r_when==='Both') out.push('Late churn: look at long-term value, use-case breadth and upgrade paths.');
-  const pmf=(A.r_pmf||[]).length; if(answered(qById('r_pmf'))&&pmf<4) out.push(`Product-market fit check: ${pmf}/4. The unticked statements are roadmap themes.`);
+  const pmf=(A.r_pmf||[]).length; if(answered(qById('r_pmf'))&&pmf<4) out.push(`Product-market fit: ${pmf} of 4 parts of the video\'s definition are true. Focus on the missing parts.`);
   if((A.g_channels||[]).length>4) out.push('Many GTM channels at once. Pick 1–2 to go deep on.');
   if(A.g_engine==='Funnel') out.push('Funnel-only acquisition needs constant fuel. Look for a growth loop.');
   if(!answered(qById('x_outcome'))&&answered(qById('x_bet'))) out.push('Your biggest bet isn\'t tied to a business outcome yet.');
