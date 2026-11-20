@@ -182,8 +182,19 @@ textarea.export{min-height:200px;font-family:inherit;font-size:15px;margin-top:1
 .toast #toastSub{font-size:15px;color:var(--muted)}
 .treewrap{margin:2px 0 0}
 .tree{display:block;width:100%;max-width:190px;margin:0 auto}
-.tree .pop{transform-box:fill-box;transform-origin:center;animation:leafpop .7s cubic-bezier(.2,1.6,.4,1)}
-@keyframes leafpop{0%{opacity:0;transform:scale(0)}60%{transform:scale(1.8)}100%{opacity:1;transform:scale(1)}}
+.tree{overflow:visible}
+/* breeze: the crown sways from the top of the trunk, leaves flutter, apples dangle. Each motion uses its own
+   rotate/scale property so sway, flutter and pop-in never fight over one transform. */
+.tree .crown{transform-origin:60px 92px;animation:breeze 5.5s ease-in-out var(--cl,0s) infinite}
+@keyframes breeze{0%,100%{rotate:-1.2deg}50%{rotate:1.2deg}}
+.tree .lf{transform-origin:-4px 0;animation:flutter var(--fd,3s) ease-in-out var(--fl,0s) infinite}
+@keyframes flutter{0%,100%{rotate:calc(var(--fa,4)*-1deg)}50%{rotate:calc(var(--fa,4)*1deg)}}
+.tree .ap{transform-origin:0 -4px;animation:dangle var(--ad,4s) ease-in-out var(--al,0s) infinite}
+@keyframes dangle{0%,100%{rotate:-3deg}50%{rotate:3deg}}
+.tree .lf.pop{animation:flutter var(--fd,3s) ease-in-out var(--fl,0s) infinite,leafpop .7s cubic-bezier(.2,1.6,.4,1) both}
+.tree .ap.pop{animation:dangle var(--ad,4s) ease-in-out var(--al,0s) infinite,leafpop .7s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes leafpop{0%{opacity:0;scale:0}60%{scale:1.8}100%{opacity:1;scale:1}}
+@media (prefers-reduced-motion:reduce){.tree,.tree *{animation:none!important}}
 .leafbit{position:fixed;width:16px;height:10px;pointer-events:none;z-index:45;animation:leafbit .9s ease-out forwards}
 @keyframes leafbit{from{transform:translate(0,0) rotate(0)}to{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(var(--rot))}}
 .floatxp{position:fixed;pointer-events:none;font-weight:600;color:var(--rust);z-index:40;animation:floatup 1s ease forwards;font-size:16px}
@@ -594,22 +605,69 @@ function refresh(q, evEl){
   if(after>before && evEl) floatXP(evEl,after-before);
   checkBadges();
 }
-let prevLeaves=null;
+let prevLeaves=null, prevFruit=null, treeKey='', TNOW=0;
+/* ---------------- Tree ----------------
+   A cartoon apple tree: a cloud-shaped canopy over a trunk with three branches. Each visible question owns a leaf
+   spot (filled centre-out); each finished chapter hangs an apple in one of 7 spots kept free for fruit. */
+const TREE_CX=60, TREE_CY=50, APPLES=7;
+const LEAF='M-6 .6C-6-2.6-2.4-4.2 1.6-3.8C5-3.4 6.6-1.4 6.2 1C5.8 3.4 2.6 4.2-.8 4C-4 3.8-6 3-6 .6Z';
+const LEAF_GREENS=['#b7d77a','#7dbb5f','#4f8f45','#9cc96b','#3f7b3f','#6aa84f'];
+// seeded random so each leaf/apple keeps its look between redraws
+const rnd=(i,salt)=>{let t=(i*2654435761+salt*40503)>>>0;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};
+function canopyPath(){
+  // scalloped cloud: arcs between points on an ellipse, each bulging outward
+  const n=11,rx=46,ry=37,pts=[];
+  for(let i=0;i<n;i++){const t=i/n*Math.PI*2+.3,w=1+.06*Math.sin(i*2.7);pts.push([TREE_CX+Math.cos(t)*rx*w,TREE_CY-2+Math.sin(t)*ry*w]);}
+  let d=`M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+  pts.forEach((p,i)=>{const q=pts[(i+1)%n],r=Math.hypot(q[0]-p[0],q[1]-p[1])*.58;d+=`A${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${q[0].toFixed(1)} ${q[1].toFixed(1)}`;});
+  return d+'Z';
+}
+const CANOPY=canopyPath();
+// negative delay that keeps every loop in phase across redraws, so the breeze never "restarts" when an answer is added
+const dl=(dur,ph)=>'-'+((((TNOW+ph)%dur)+dur)%dur).toFixed(2)+'s';
+function apple(x,y,pop,i){
+  const rot=Math.round((rnd(i,7)-.5)*44),sc=(.78+rnd(i,8)*.2).toFixed(2),flip=rnd(i,9)<.4?-1:1,ad=3.2+rnd(i,12)*1.6;
+  return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rot}) scale(${sc*flip} ${sc})"><g class="ap${pop?' pop':''}" style="--ad:${ad.toFixed(2)}s;--al:${dl(ad,rnd(i,13)*ad)}">
+    <path d="M0-3.2C-1.2-4.6-5-4.4-5 -.6C-5 2.8-2.4 4.8 0 4C2.4 4.8 5 2.8 5-.6C5-4.4 1.2-4.6 0-3.2Z" fill="#d9534f" stroke="#2d2a26" stroke-width=".9" stroke-linejoin="round"/>
+    <path d="M0-3.2Q.2-5.4 1.2-6.6" fill="none" stroke="#2d2a26" stroke-width=".9" stroke-linecap="round"/>
+    <path d="M.9-5.4Q3.4-7.6 5-5.6Q2.8-4.2.9-5.4Z" fill="#5c9a46" stroke="#2d2a26" stroke-width=".7" stroke-linejoin="round"/>
+  </g></g>`;
+}
 function renderTree(){
-  const qs=ALL_Q.filter(visible), n=qs.length, now=new Set(qs.filter(answered).map(q=>q.id));
-  const col=Object.fromEntries(CH.map(c=>[c.id,c.hex]));
-  let leaves='';
-  qs.forEach((q,i)=>{const r=Math.sqrt((i+.5)/n),a=i*2.39996,x=(60+Math.cos(a)*r*47).toFixed(1),y=(44+Math.sin(a)*r*33).toFixed(1),rot=Math.round(a*57.3%180);
-    const on=now.has(q.id), isNew=on&&prevLeaves&&!prevLeaves.has(q.id);
-    leaves+=on?`<ellipse class="${isNew?'pop':''}" cx="${x}" cy="${y}" rx="5.4" ry="3.2" transform="rotate(${rot} ${x} ${y})" fill="${col[q.ch]}" stroke="#2d2a26" stroke-width=".9"/>`
-             :`<ellipse cx="${x}" cy="${y}" rx="4.2" ry="2.4" transform="rotate(${rot} ${x} ${y})" fill="none" stroke="#b9b1a3" stroke-width=".7" stroke-dasharray="1.6 1.4"/>`;});
-  const done=now.size===n&&n>0;
-  $('#tree').innerHTML=`<svg viewBox="0 0 120 114" class="tree" aria-label="${now.size} of ${n} questions answered">
-    <ellipse cx="60" cy="44" rx="56" ry="41" fill="#e3f2df" opacity=".55"/>
-    <path d="M52 113 Q56 94 54 80 L62 80 Q61 94 67 113Z" fill="#d9bfa0" stroke="#2d2a26" stroke-width="1.6" stroke-linejoin="round"/>
-    <path d="M56 84 Q52 70 42 62 M59 82 Q64 70 77 63 M57 74 Q58 64 60 56" fill="none" stroke="#2d2a26" stroke-width="1.6" stroke-linecap="round"/>
-    ${leaves}${done?'<g fill="#f6c6cf" stroke="#2d2a26" stroke-width=".8"><circle cx="36" cy="30" r="3"/><circle cx="82" cy="26" r="3"/><circle cx="60" cy="16" r="3"/><circle cx="90" cy="50" r="3"/><circle cx="28" cy="52" r="3"/></g>':''}</svg>`;
-  prevLeaves=now;
+  const qs=ALL_Q.filter(visible), n=qs.length, now=new Set(qs.filter(answered).map(q=>q.id)), k=now.size;
+  const fruit=Math.min(CH.filter(c=>S.seen.includes(c.id)).length,APPLES);
+  const key=n+'|'+k+'|'+fruit; if(key===treeKey) return; treeKey=key;     // typing in a box shouldn't redraw the tree
+  const ct=document.timeline&&document.timeline.currentTime; TNOW=(typeof ct==='number'?ct:performance.now())/1000;
+  const grew=prevLeaves&&k>prevLeaves.size;
+  // evenly spaced slots spiral out from the centre; 7 are kept free for apples so fruit never covers a leaf.
+  // leaves fill the other slots centre-first: the first k are solid, the rest dashed outlines
+  const T=n+APPLES;
+  const slot=i=>{const r=Math.sqrt((i+.6)/T),a=i*2.39996;return {x:TREE_CX+Math.cos(a)*r*44,y:TREE_CY-2+Math.sin(a)*r*34,a};};
+  const appleRank=new Set(Array.from({length:APPLES},(_,j)=>Math.round(T*(.12+j*.112))));
+  let leaves='',li=0;
+  const appleSlots=[];
+  for(let s=0;s<T;s++){
+    const {x,y,a}=slot(s);
+    if(appleRank.has(s)){appleSlots.push([x,y]);continue;}
+    const i=li++; if(i>=n) continue;
+    // point away from the centre, with a random tilt so they don't line up
+    const rot=Math.round(a*57.3+(rnd(i,3)-.5)*70), at=`translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rot})`;
+    if(i<k){const pop=grew&&i===k-1, fd=2.4+rnd(i,13)*1.8;
+      leaves+=`<g transform="${at}"><g class="lf${pop?' pop':''}" style="--fd:${fd.toFixed(2)}s;--fl:${dl(fd,rnd(i,14)*fd)};--fa:${(3+rnd(i,15)*3).toFixed(1)}"><path d="${LEAF}" transform="scale(${(.64+rnd(i,4)*.12).toFixed(2)} ${(.66+rnd(i,5)*.16).toFixed(2)})" fill="${LEAF_GREENS[Math.floor(rnd(i,6)*LEAF_GREENS.length)]}" stroke="#2d2a26" stroke-width=".95" stroke-linejoin="round"/></g></g>`;}
+    else leaves+=`<g transform="${at}"><path d="${LEAF}" transform="scale(${(.58+rnd(i,4)*.1).toFixed(2)})" fill="none" stroke="#b5ab9b" stroke-width=".8" stroke-dasharray="1.8 1.6"/></g>`;
+  }
+  // one apple per finished chapter
+  let apples='';
+  for(let i=0;i<fruit;i++){const [x,y]=appleSlots[(i*3)%APPLES];apples+=apple(x,y,prevFruit!==null&&i>=prevFruit,i);}
+  // the crown (canopy, branches, leaves, apples) sways from the top of the trunk; the canopy sits behind the trunk,
+  // so it is a second group running the exact same sway
+  const crown=`class="crown" style="--cl:${dl(5.5,0)}"`;
+  $('#tree').innerHTML=`<svg viewBox="0 0 120 128" class="tree" aria-label="${k} of ${n} questions answered">
+    <g ${crown}><path d="${CANOPY}" fill="#e5f2e0"/></g>
+    <path d="M53.5 92 L66.5 92 L71 126 L49 126 Z" fill="#d9bfa0" stroke="#2d2a26" stroke-width="1.7" stroke-linejoin="round"/>
+    <g ${crown}><path d="M55.5 93 Q50 78 38 66 M64.5 93 Q70 78 83 68 M60 91 Q59.5 76 61 62" fill="none" stroke="#2d2a26" stroke-width="2" stroke-linecap="round"/>
+    ${leaves}${apples}</g></svg>`;
+  prevLeaves=now; prevFruit=fruit;
 }
 function leafBurst(r){for(let k=0;k<4;k++){const l=document.createElement('div');l.className='leafbit';l.innerHTML='<svg viewBox="0 0 20 12"><ellipse cx="10" cy="6" rx="8" ry="4.5" fill="#cde8c9" stroke="#2d2a26" stroke-width="1.2"/></svg>';
   l.style.left=(r.left+20)+'px';l.style.top=(r.top+10)+'px';l.style.setProperty('--dx',(Math.random()*90-45)+'px');l.style.setProperty('--dy',(-30-Math.random()*40)+'px');l.style.setProperty('--rot',(Math.random()*360)+'deg');
