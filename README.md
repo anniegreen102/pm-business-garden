@@ -15,7 +15,7 @@ An interactive, sketchbook-style canvas for product managers to map the business
 
 Everything runs in your browser. Answers are saved only in your own browser's local storage and are never sent to any server, so nobody else can see what you enter. Use "Replant from scratch" in the sidebar to clear them.
 
-The page uses [PostHog](https://posthog.com) for anonymous usage stats: page views and a few milestones (a section finished, the brief exported, the garden reset). Autocapture and session recording are off, and none of your answers are ever included.
+The page uses [PostHog](https://posthog.com) for anonymous usage stats: page views, a few milestones (a section finished, the brief exported, the garden reset) and session replays of how the page is used. Your answers are masked in replays and never included in any event.
 
 ## Credits
 
