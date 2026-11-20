@@ -180,6 +180,12 @@ textarea.export{min-height:200px;font-family:inherit;font-size:15px;margin-top:1
 .toast small{display:block;color:var(--muted);font-size:14px}
 .toast b{font-size:22px;font-weight:600;color:var(--rust)}
 .toast #toastSub{font-size:15px;color:var(--muted)}
+.treewrap{margin:2px 0 0}
+.tree{display:block;width:100%;max-width:190px;margin:0 auto}
+.tree .pop{transform-box:fill-box;transform-origin:center;animation:leafpop .7s cubic-bezier(.2,1.6,.4,1)}
+@keyframes leafpop{0%{opacity:0;transform:scale(0)}60%{transform:scale(1.8)}100%{opacity:1;transform:scale(1)}}
+.leafbit{position:fixed;width:16px;height:10px;pointer-events:none;z-index:45;animation:leafbit .9s ease-out forwards}
+@keyframes leafbit{from{transform:translate(0,0) rotate(0)}to{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(var(--rot))}}
 .floatxp{position:fixed;pointer-events:none;font-weight:600;color:var(--rust);z-index:40;animation:floatup 1s ease forwards;font-size:16px}
 @keyframes floatup{from{opacity:1;transform:translateY(0) rotate(-4deg)}to{opacity:0;transform:translateY(-40px) rotate(4deg)}}
 canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:60}
@@ -195,6 +201,7 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:60}
   .side .brand b{font-size:20px}
   .xpcard{padding:10px 12px}
   .xpcard .lvlname{font-size:18px;margin-bottom:6px}
+  .tree{max-width:130px}
   .nav{min-width:0;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
   .nav::-webkit-scrollbar{display:none}
   .nav button{padding:6px 10px;gap:6px}
@@ -249,9 +256,9 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:60}
   <aside class="side paper sketch">
     <div class="brand"><div class="logo" id="logo"></div><div><b>The Business Garden</b><small>Grow into a business-minded PM</small></div></div>
     <div class="xpcard sketch">
-      <div class="lvl">Growth stage <span id="lvlNum">1</span></div>
+      <div class="lvl">Stage <span id="lvlNum">1</span></div>
       <div class="lvlname" id="lvlName">Seed</div>
-      <div class="bar"><i id="xpBar"></i></div>
+      <div id="tree" class="treewrap"></div>
       <div class="xpnums"><span id="xpNow">0 XP</span><span id="xpNext"></span></div>
     </div>
     <nav class="nav" id="nav"></nav>
@@ -260,149 +267,147 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:60}
       <div class="badgeshelf" id="shelf"></div>
     </div>
     <div class="sidefoot">
-      Framework from <a href="https://www.youtube.com/watch?v=1xZ8mYYSfUg">Racheal Ou's "Business Concepts Every PM Needs to Know"</a>.<br>
-      Private by design: your answers are saved only in this browser and never sent anywhere. <button class="linkbtn" id="resetBtn">Replant from scratch</button>
+      Based on <a href="https://www.youtube.com/watch?v=1xZ8mYYSfUg">Racheal Ou's "Business Concepts Every PM Needs to Know"</a>.<br>
+      Answers stay in this browser. <button class="linkbtn" id="resetBtn">Start over</button>
     </div>
   </aside>
   <div class="tornwrap" style="filter:drop-shadow(0 8px 12px rgba(80,60,40,.2));min-width:0"><main id="main" class="paper" style="filter:none"></main></div>
 </div>
 <div class="toast" id="toast"><div class="medal got" id="toastMedal"></div><div><small id="toastKicker">Badge unlocked</small><b id="toastTitle"></b><div id="toastSub"></div></div></div>
 <canvas id="confetti"></canvas>
-<div class="modal" id="modal"><div class="box paper sketch"><h3>Replant from scratch?</h3><p style="color:var(--muted);margin:8px 0 0">This clears every answer, seed and bloom in this browser.</p><div class="row"><button class="btn ghost" id="mCancel">Keep my garden</button><button class="btn" id="mOk" style="background:#f6bec8">Clear everything</button></div></div></div>
+<div class="modal" id="modal"><div class="box paper sketch"><h3>Start over?</h3><p style="color:var(--muted);margin:8px 0 0">This clears all answers and badges.</p><div class="row"><button class="btn ghost" id="mCancel">Keep my garden</button><button class="btn" id="mOk" style="background:#f6bec8">Clear everything</button></div></div></div>
 
 <script>
 /* ---------------- Content model ---------------- */
 const CH = [
- {id:'profile', name:'Warm-up', sub:'Your product at a glance', meta:'Plant the seed', hex:'#f3dfc4', deep:'#b07a3c', glyph:'acorn',
-  badge:'Acorn', badgeSub:'You planted the seed. Every strategy starts here.',
-  intro:'Before the frameworks: name what you are building and where it stands. Four quick answers.',
+ {id:'profile', name:'Warm-up', sub:'Your product at a glance', hex:'#f3dfc4', deep:'#b07a3c', glyph:'acorn',
+  badge:'Seed Planter', badgeSub:'Every strategy starts here.',
+  intro:'Four quick answers to start.',
   lessons:[],
   qs:[
    {id:'p_name', t:'text', q:'Product name', ph:'e.g. Netflix'},
    {id:'p_company', t:'text', q:'Company', ph:'e.g. Netflix, Inc.'},
-   {id:'p_oneliner', t:'textarea', q:'Describe the product in one sentence, as you would to a smart friend', ph:'A streaming service where people watch films and series on any screen for a monthly subscription.'},
-   {id:'p_stage', t:'mcq', q:'What stage is the product in?', opts:['Idea','Pre-launch','Early traction','Scaling','Mature'],
-    insight:v=>({ 'Idea':'At idea stage, the Customer pillar matters most. Get it sharp before pricing.',
-      'Pre-launch':'Pre-launch: pay special attention to the activation moment in Retention. It is your first launch metric.',
-      'Early traction':'Early traction is when the product-market fit check in Retention is most honest. Answer it without flattering yourself.',
-      'Scaling':'At scale, unit economics and expansion revenue usually decide the roadmap. The Money and Growth chapters are where you\'ll earn the most.',
-      'Mature':'Mature products die like BlackBerry: by optimizing for what customers used to value. Spend time on the Landscape chapter.'})[v]}
+   {id:'p_oneliner', t:'textarea', q:'Your product in one sentence', ph:'A streaming service where people watch films and series on any screen for a monthly subscription.'},
+   {id:'p_stage', t:'mcq', q:'Stage', opts:['Idea','Pre-launch','Early traction','Scaling','Mature'],
+    insight:v=>({ 'Idea':'Focus on Customer first.',
+      'Pre-launch':'Watch the activation question in Retention.',
+      'Early traction':'Be honest on the product-market fit check in Retention.',
+      'Scaling':'Monetization and Growth matter most now.',
+      'Mature':'Spend time on Landscape. Mature products fall behind what customers value next.'})[v]}
   ]},
- {id:'customer', name:'Customer', sub:'Who is this for?', meta:'Know your soil', hex:'#cde8c9', deep:'#4f8a4a', glyph:'sprout',
-  badge:'Sprout · Customer Whisperer', badgeSub:'You can describe who you build for and who pays. Roadmap, pricing and positioning get sharper from here.',
-  intro:'If you can\'t clearly describe your customer, every downstream decision gets fuzzy: roadmap, pricing, positioning.',
-  lessons:['ICP','B2B / B2C / B2B2C','User vs buyer persona','SMB vs enterprise','Horizontal vs vertical'],
+ {id:'customer', name:'Customer', sub:'Who is this for?', hex:'#cde8c9', deep:'#4f8a4a', glyph:'sprout',
+  badge:'Customer Whisperer', badgeSub:'You know who uses it and who pays.',
+  intro:'A fuzzy customer makes roadmap, pricing and positioning fuzzy too.',
+  lessons:['ICP','B2B / B2C / B2B2C','User vs buyer','SMB vs enterprise','Horizontal vs vertical'],
   qs:[
-   {id:'c_model', t:'mcq', big:true, q:'Who do you sell to?', opts:[['B2B','Businesses buy it'],['B2C','Individuals buy it'],['B2B2C','A business buys, its customers use it']],
-    insight:v=>({B2B:'B2B usually means several people decide together, sales cycles run longer, and you need to prove ROI.',
-      B2C:'In B2C one person decides, often in seconds. UX, price and habit decide whether you win.',
-      B2B2C:'B2B2C means two customers: the business that pays and the end user who decides whether it sticks. Both need a reason to stay.'})[v]},
-   {id:'c_same', t:'toggle', q:'The person who uses the product every day is the same person who pays for it', yes:'Same person', no:'Different people',
-    insight:v=>v===false?'Two personas. Think of a teacher using classroom software while the school board signs the cheque. <b>Build what the user loves, and solve a problem the buyer will pay for.</b>':'One persona keeps things simple: the person who feels the value also controls the budget.'},
-   {id:'c_user', t:'textarea', q:'User persona: who uses it day to day, and what do they need?', ph:'Viewers at home who want something good to watch tonight without searching for ages…'},
-   {id:'c_buyer', t:'textarea', q:'Buyer persona: who signs off on the budget, and what do they care about?', ph:'The account holder who pays the monthly bill and cares about price and who can share the account…', show:s=>s.c_same===false},
-   {id:'c_size', t:'multi', q:'Which customer sizes do you target?', opts:['Consumers','SMB','Mid-market','Enterprise'],
+   {id:'c_model', t:'mcq', big:true, q:'Who do you sell to?', opts:[['B2B','Businesses buy'],['B2C','Individuals buy'],['B2B2C','A business buys, its customers use']],
+    insight:v=>({B2B:'Several people decide, sales take longer, ROI must be clear.',
+      B2C:'One person decides, fast. UX, price and habit win.',
+      B2B2C:'Two customers: the business that pays and the user who stays.'})[v]},
+   {id:'c_same', t:'toggle', q:'Does the user also pay?', yes:'Same person', no:'Different people',
+    insight:v=>v===false?'Like a teacher using software the school board pays for. <b>Users must love it; buyers must see the value.</b>':'Simple: the person who gets value controls the budget.'},
+   {id:'c_user', t:'textarea', q:'User: who uses it and what do they need?', ph:'Viewers at home who want something good to watch tonight without searching for ages…'},
+   {id:'c_buyer', t:'textarea', q:'Buyer: who pays and what do they care about?', ph:'The account holder who pays the monthly bill and cares about price and who can share the account…', show:s=>s.c_same===false},
+   {id:'c_size', t:'multi', q:'Customer size', opts:['Consumers','SMB','Mid-market','Enterprise'],
     insight:v=>{ if(!v.length) return null;
       const ent=v.includes('Enterprise'), smb=v.includes('SMB')||v.includes('Consumers');
-      if(ent&&smb) return {warn:true, html:'Selling to SMB <b>and</b> enterprise means two motions: self-serve and sales-led. Be clear which one the roadmap serves first.'};
-      if(ent) return 'Enterprise brings bigger deals, plus longer cycles and demands for security reviews, SSO and procurement. Those become roadmap items.';
-      if(smb) return 'SMBs onboard fast and give quick feedback, so you learn what the market wants sooner. The trade-off is smaller deals.';
-      return 'Mid-market sits in between: deals big enough for light sales, buyers who still expect fast time-to-value.'}},
-   {id:'c_shape', t:'mcq', big:true, q:'Horizontal or vertical?', opts:[['Horizontal','Serves many customer types (e.g. Slack)'],['Vertical','Built for one industry or use case']],
-    insight:v=>v==='Horizontal'?'Horizontal products have a big market but face more competitors and fuzzier positioning.':'Vertical products face a smaller market but get sharper positioning, deeper features and higher willingness to pay.'},
-   {id:'c_vertical', t:'text', q:'Which industry or use case?', ph:'e.g. on-demand video entertainment', show:s=>s.c_shape==='Vertical'},
-   {id:'c_icp', t:'textarea', q:'Your Ideal Customer Profile in one breath', help:'Industry + size + region + the trigger that makes them need you now.', ph:'Households with fast internet and a smart TV or phone who watch series several nights a week and would rather pay than sit through ads.'},
-   {id:'c_prio', t:'multi', big:true, max:3, q:'Based on who your customer is, what does the product need to prioritize?',
-    help:'i.e. If you build Shopify for small business owners who probably don\'t have a technical team, you\'ll likely need to prioritize <b>simple setup, templates and guided onboarding</b>. Pick up to 3 for your customer.',
-    opts:[['Simple setup','From the video\'s example: for customers with no technical team'],['Templates','From the video\'s example: a ready-made start'],['Guided onboarding','From the video\'s example: walk them through it'],['Self-serve','They sign up and pay without talking to sales'],['Integrations','It must connect to tools they already use'],['Admin & permissions','Many people use it and someone manages access'],['Security & compliance','IT or legal must approve it before purchase'],['Customization','Every customer\'s process is a bit different'],['Dedicated support','Big accounts expect a person to call'],['Mobile','They work on the go, away from a desk']],
+      if(ent&&smb) return {warn:true, html:'Small <b>and</b> enterprise means two sales motions. Pick which comes first.'};
+      if(ent) return 'Bigger deals, longer cycles, security and procurement asks.';
+      if(smb) return 'Faster onboarding and feedback, smaller deals.';
+      return 'In between: light sales, fast time-to-value.'}},
+   {id:'c_shape', t:'mcq', big:true, q:'Horizontal or vertical?', opts:[['Horizontal','Many customer types (e.g. Slack)'],['Vertical','One industry or use case']],
+    insight:v=>v==='Horizontal'?'Bigger market, more competitors.':'Smaller market, sharper positioning, higher willingness to pay.'},
+   {id:'c_vertical', t:'text', q:'Which industry?', ph:'e.g. on-demand video entertainment', show:s=>s.c_shape==='Vertical'},
+   {id:'c_icp', t:'textarea', q:'Ideal customer profile (ICP)', help:'Industry, size, region, and why they need you now.', ph:'Households with fast internet and a smart TV or phone who watch series several nights a week and would rather pay than sit through ads.'},
+   {id:'c_prio', t:'multi', big:true, max:3, q:'What must the product prioritize for them?',
+    help:'Video example: Shopify for small business owners with no tech team needs <b>simple setup, templates and guided onboarding</b>.',
+    opts:[['Simple setup','No tech team'],['Templates','Ready-made start'],['Guided onboarding','Walk them through'],['Self-serve','No sales call'],['Integrations','Fits their tools'],['Admin & permissions','Many users, one owner'],['Security & compliance','IT or legal sign-off'],['Customization','Every process differs'],['Dedicated support','Expects a person'],['Mobile','Works on the go']],
     suggest:s=>{const z=s.c_size||[],o=new Set();
       if(z.includes('SMB')||z.includes('Consumers'))['Simple setup','Templates','Guided onboarding','Self-serve'].forEach(x=>o.add(x));
       if(z.includes('Mid-market'))['Guided onboarding','Integrations','Admin & permissions'].forEach(x=>o.add(x));
       if(z.includes('Enterprise'))['Security & compliance','Admin & permissions','Integrations','Dedicated support'].forEach(x=>o.add(x));
       return [...o];},
     insight:(v,s)=>{if(!v.length)return null;
-      const d=Object.fromEntries(qById('c_prio').opts.map(o=>[o[0],o[1].charAt(0).toLowerCase()+o[1].slice(1)]));
-      const list=v.map(x=>'<b>'+esc(x)+'</b>').join(', ');
-      return 'For this customer, the product should prioritize '+list+'. When a roadmap item doesn\'t help with these, ask whether it can wait.';}}
+      return 'Roadmap filter: does it help with '+v.map(x=>'<b>'+esc(x)+'</b>').join(', ')+'? If not, it can wait.';}}
   ]},
- {id:'landscape', name:'Landscape', sub:'What stops them choosing you?', meta:'Read the meadow', hex:'#c6dff2', deep:'#3f78a8', glyph:'butterfly',
-  badge:'Butterfly · Meadow Scout', badgeSub:'You see the whole field: rivals, workarounds, and the option to do nothing.',
-  intro:'Customers never judge you in isolation. They compare you with competitors, workarounds, internal tools, and the option to do nothing.',
-  lessons:['Incumbents','New entrants','Disruptors','Differentiation','The BlackBerry lesson'],
+ {id:'landscape', name:'Landscape', sub:'What else could they choose?', hex:'#c6dff2', deep:'#3f78a8', glyph:'butterfly',
+  badge:'Meadow Scout', badgeSub:'You see rivals, workarounds and doing nothing.',
+  intro:'Customers compare you with competitors, workarounds and doing nothing.',
+  lessons:['Incumbents','New entrants','Differentiation','BlackBerry lesson'],
   qs:[
-   {id:'k_direct', t:'tags', q:'Direct competitors', help:'Type a name, then press Enter or click Add. Add as many as you like.', ph:'e.g. Disney+'},
-   {id:'k_alts', t:'multi', other:'e.g. watching regular TV, going to the cinema, reading', q:'What else could customers choose instead of you?', opts:['Spreadsheets / manual work','Phone, email or DMs','An in-house tool','Agencies / outsourcing','A big platform bundling it','AI assistants doing the job','Doing nothing'],
-    insight:v=>v.includes('Doing nothing')?'If "doing nothing" is an option, the status quo is a competitor. Put a number on what inaction costs them: hours, money, missed hires.':(v.includes('AI assistants doing the job')?'AI assistants are the new entrant in almost every category. What can you do that a general assistant can\'t?':(v.length?'Good. The real field is wider than the logos on a competitor slide.':null))},
-   {id:'k_new', t:'text', q:'Which new entrant or disruptor should you watch?', ph:'e.g. YouTube and TikTok competing for the same evening hours…'},
-   {id:'k_axis', t:'mcq', q:'Your main axis of differentiation', opts:['Price','Experience / UX','Speed','Depth / specialization','Trust & security','Network or data advantage','Distribution'],
-    insight:v=>v==='Price'?{warn:true,html:'Competing on price is the hardest position to defend. Someone can always go cheaper. Is there an experience customers would pay more for?'}:'Make sure this axis is something customers value <b>now</b>, and keep watching whether that changes.'},
-   {id:'k_why', t:'textarea', q:'Why do customers pick you over the best alternative?', ph:'"There\'s always something new I actually want to watch."'},
-   {id:'k_shift', t:'textarea', q:'What do customers value today, and what could a competitor make them value instead?', help:'From the video: BlackBerry won nearly half the US smartphone market by giving business users what they valued then: physical keyboards, email security and reliability. Then the iPhone made people care about touchscreens, apps and ease of use, and BlackBerry\'s strengths stopped mattering. The point: know what your customers value now, and watch for the competitor that could change it.', ph:'Today: a huge catalogue of series to binge. Could shift to: live sports and short videos, if YouTube or TikTok make those the reason people pay.'}
+   {id:'k_direct', t:'tags', q:'Direct competitors', ph:'e.g. Disney+'},
+   {id:'k_alts', t:'multi', other:'e.g. regular TV, cinema', q:'Other alternatives', opts:['Spreadsheets / manual work','Phone, email or DMs','An in-house tool','Agencies','A big platform bundling it','AI assistants','Doing nothing'],
+    insight:v=>v.includes('Doing nothing')?'Doing nothing is a competitor. Show what inaction costs.':(v.includes('AI assistants')?'What can you do that a general AI assistant can\'t?':null)},
+   {id:'k_new', t:'text', q:'New entrant to watch', ph:'e.g. YouTube and TikTok competing for evening hours'},
+   {id:'k_axis', t:'mcq', q:'How you stand out', opts:['Price','Experience / UX','Speed','Depth / specialization','Trust & security','Network or data','Distribution'],
+    insight:v=>v==='Price'?{warn:true,html:'Price is the hardest edge to defend. Someone can always go cheaper.'}:null},
+   {id:'k_why', t:'textarea', q:'Why customers pick you', ph:'"There\'s always something new I actually want to watch."'},
+   {id:'k_shift', t:'textarea', q:'What customers value today, and what could change it', help:'From the video: BlackBerry won on keyboards, email security and reliability. The iPhone made people care about touchscreens and apps instead, and BlackBerry\'s strengths stopped mattering.', ph:'Today: a huge catalogue to binge. Could shift to: live sports and short videos.'}
   ]},
- {id:'money', name:'Monetization', sub:'How does it make money?', meta:'Tend the harvest', hex:'#f7eaa6', deep:'#b58e1a', glyph:'honey',
-  badge:'Honeypot · Harvest Keeper', badgeSub:'You know how money flows through the product, and whether each customer is worth acquiring.',
-  intro:'A product can solve a real problem and still fail as a business if customers won\'t pay enough, the margins don\'t work, or the model doesn\'t scale.',
-  lessons:['Revenue, cost, profit, margin','Unit economics','CAC','LTV','Business models','Pricing strategies'],
+ {id:'money', name:'Monetization', sub:'How does it make money?', hex:'#f7eaa6', deep:'#b58e1a', glyph:'honey',
+  badge:'Harvest Keeper', badgeSub:'You know how money flows and if customers are worth acquiring.',
+  intro:'Solving a real problem isn\'t enough if margins don\'t work.',
+  lessons:['Margin','Unit economics','CAC','LTV','Business models','Pricing'],
   qs:[
-   {id:'m_models', t:'multi', q:'Business model(s)', opts:['SaaS','Marketplace','Platform','Product (one-time)','Services'],
-    insight:v=>v.length>1?'Hybrid is normal. Amazon is a marketplace and a subscription business through Prime. Know which model drives most of the revenue.':(v.length?'The model shapes what gets built, how customers adopt it and how the company grows.':null)},
-   {id:'m_pricing', t:'multi', q:'Pricing strategy', opts:['Freemium','Free trial','Ad-supported','Pay once','Subscription','Transaction fee','Seat-based','Usage-based'],
-    insight:v=>v.includes('Seat-based')&&v.includes('Usage-based')?{warn:true,html:'Seats + usage can confuse buyers. Make sure one of them is clearly the headline price.'}:(v.length?'Good. Next, check that what you charge for matches what customers value.':null)},
-   {id:'m_metric', t:'text', q:'What unit do customers pay for? (value metric)', ph:'per account per month, with plans priced by screens and video quality…'},
-   {id:'m_unit', t:'calc', q:'Unit economics: is each customer worth acquiring?', help:'Rough monthly numbers are fine. LTV = monthly revenue per customer × gross margin ÷ monthly churn.', xp:30},
-   {id:'m_measured', t:'toggle', q:'Those numbers are measured, not estimated', yes:'Measured', no:'Estimated',
-    insight:v=>v===false?{warn:true,html:'Estimates are fine for now. Write down which data you\'d need to measure them; it is a strong ask for your analytics roadmap.'}:'Measured numbers make roadmap arguments much harder to dismiss.'},
-   {id:'m_wtp', t:'scale', q:'If you raised price 20% tomorrow, how many customers would still pay?', ends:['Most would leave','Nearly all would stay'],
-    insight:v=>v<=2?{warn:true,html:'Low pricing power means customers aren\'t yet seeing value worth more than the price, which leads to churn. Pricing problems are often value problems.'}:v>=4?'High pricing power. You may be leaving money on the table. Test a higher tier.':'Middle ground. Find the segment that would happily pay more.'}
+   {id:'m_models', t:'multi', q:'Business model', opts:['SaaS','Marketplace','Platform','Product (one-time)','Services'],
+    insight:v=>v.length>1?'Hybrid is normal (Amazon: marketplace + Prime). Know which one drives revenue.':null},
+   {id:'m_pricing', t:'multi', q:'Pricing', opts:['Freemium','Free trial','Ad-supported','Pay once','Subscription','Transaction fee','Seat-based','Usage-based'],
+    insight:v=>v.includes('Seat-based')&&v.includes('Usage-based')?{warn:true,html:'Seats + usage can confuse buyers. Lead with one.'}:null},
+   {id:'m_metric', t:'text', q:'What do customers pay per?', ph:'e.g. per account per month, tiered by screens'},
+   {id:'m_unit', t:'calc', q:'Unit economics', help:'Rough monthly numbers are fine.', xp:30},
+   {id:'m_measured', t:'toggle', q:'Are these numbers measured or estimated?', yes:'Measured', no:'Estimated',
+    insight:v=>v===false?{warn:true,html:'Fine for now. Note what data you\'d need.'}:null},
+   {id:'m_wtp', t:'scale', q:'If price rose 20%, how many would stay?', ends:['Most leave','Nearly all stay'],
+    insight:v=>v<=2?{warn:true,html:'Low pricing power often means a value problem.'}:v>=4?'Strong pricing power. Test a higher tier.':null}
   ]},
- {id:'retention', name:'Retention', sub:'Why do they stay?', meta:'Grow deep roots', hex:'#ddd0f0', deep:'#7d5fb0', glyph:'mushroom',
-  badge:'Mushroom · Root Keeper', badgeSub:'You know why customers stay and why they leave, and how close you are to product-market fit.',
-  intro:'Sustainable businesses are built on customers who keep getting value over time, not one-time signups.',
-  lessons:['Retention curves','Natural frequency','Churn','Activation','Product-market fit'],
+ {id:'retention', name:'Retention', sub:'Why do they stay?', hex:'#ddd0f0', deep:'#7d5fb0', glyph:'mushroom',
+  badge:'Root Keeper', badgeSub:'You know why customers stay and leave.',
+  intro:'Lasting businesses keep customers getting value, not just signing up.',
+  lessons:['Retention curves','Churn','Activation','Product-market fit'],
   qs:[
-   {id:'r_freq', t:'mcq', q:'How often does a happy customer naturally use the product?', opts:['Daily','Weekly','Monthly','Seasonal / yearly','Per project / one-off'],
-    insight:v=>({'Daily':'Measure retention day by day and week by week. A daily habit is your moat.','Weekly':'Weekly retention is your core health metric.','Monthly':'Use monthly cohorts. A weekly view will look worse than it is.','Seasonal / yearly':'Like tax software, used once a year. Good retention means they come back next season, not next week.','Per project / one-off':'Retention means "come back for the next project" or "recommend us". Measure repeat purchase and referral rate.'})[v]},
-   {id:'r_curve', t:'mcq', q:'What does your retention curve look like?', opts:['Flattens out','Keeps declining','Too early to tell','Haven\'t looked'],
-    insight:v=>v==='Flattens out'?'A curve that flattens means a group of customers keeps getting value. That is the start of product-market fit.':v==='Keeps declining'?{warn:true,html:'A curve that keeps falling means customers try it, then drift back to old tools. Fix this before spending more on acquisition.'}:v==='Haven\'t looked'?{warn:true,html:'Plot users by signup cohort against % still active. It\'s one of the most useful charts a PM can own.'}:'Early is fine. Decide now which cohort chart you\'ll check first.'},
-   {id:'r_aha', t:'textarea', q:'Activation: the moment a new customer first gets real value', ph:'The first time a new member finishes an episode and the next one starts playing…'},
-   {id:'r_when', t:'mcq', q:'When do customers usually churn?', opts:['In the first weeks','After several months','Both','Not sure'],
-    insight:v=>v==='In the first weeks'?{warn:true,html:'Early churn points to <b>onboarding or activation</b>: they never reached the aha moment.'}:v==='After several months'?{warn:true,html:'Late churn points to <b>long-term value or monetization</b>: they ran out of use cases, hit free-plan limits, or saw no reason to upgrade.'}:v==='Both'?{warn:true,html:'Two problems, two fixes: activation for early churners, long-term value for later ones. Don\'t solve them with one feature.'}:'Tag every churned account with a reason for the next 30 days. You\'ll have an answer quickly.'},
-   {id:'r_why', t:'textarea', q:'Top reasons customers leave', ph:'1. Finished the show they joined for 2. Price went up 3. Account sharing stopped…'},
-   {id:'r_pmf', t:'multi', q:'Product-market fit check: tick what is true today', help:'From the video: product-market fit means you found a specific customer segment, a painful problem, and a product that solves it well enough that customers consistently adopt it and are willing to pay for it.', opts:['We serve a specific customer segment','We solve a painful problem for them','Customers consistently adopt the product','Customers are willing to pay for it'],
-    insight:v=>v.length===4?'All four parts of the video\'s definition are true. That is product-market fit.':v.length?{warn:true,html:v.length+' of 4 parts of the definition are true today. <b>Our tip:</b> the parts you left unticked are where to focus next.'}:null}
+   {id:'r_freq', t:'mcq', q:'How often does a happy customer use it?', opts:['Daily','Weekly','Monthly','Seasonal / yearly','Per project'],
+    insight:v=>({'Daily':'Track retention daily and weekly.','Weekly':'Weekly retention is your health metric.','Monthly':'Use monthly cohorts.','Seasonal / yearly':'Like tax software: success means coming back next season.','Per project':'Track repeat purchases and referrals.'})[v]},
+   {id:'r_curve', t:'mcq', q:'Your retention curve', opts:['Flattens out','Keeps declining','Too early','Haven\'t looked'],
+    insight:v=>v==='Flattens out'?'A flat curve means a group keeps getting value.':v==='Keeps declining'?{warn:true,html:'Fix this before spending more on acquisition.'}:v==='Haven\'t looked'?{warn:true,html:'Plot % still active by signup cohort.'}:null},
+   {id:'r_aha', t:'textarea', q:'Activation: the first moment of real value', ph:'The first time a new member finishes an episode and the next one starts playing…'},
+   {id:'r_when', t:'mcq', q:'When do customers usually leave?', opts:['First weeks','After months','Both','Not sure'],
+    insight:v=>v==='First weeks'?{warn:true,html:'Early churn = <b>onboarding</b> problem.'}:v==='After months'?{warn:true,html:'Late churn = <b>long-term value</b> problem.'}:v==='Both'?{warn:true,html:'Two problems: onboarding and long-term value.'}:null},
+   {id:'r_why', t:'textarea', q:'Top reasons they leave', ph:'1. Finished the show they joined for 2. Price went up 3. Account sharing stopped'},
+   {id:'r_pmf', t:'multi', q:'Product-market fit: what\'s true today?', help:'From the video: a specific segment, a painful problem, consistent adoption, and willingness to pay.', opts:['Specific customer segment','Painful problem solved','Consistent adoption','Willing to pay'],
+    insight:v=>v.length===4?'That\'s product-market fit.':v.length?{warn:true,html:v.length+' of 4. Focus on the unticked ones.'}:null}
   ]},
- {id:'growth', name:'Growth', sub:'How does it grow?', meta:'Spread the seeds', hex:'#f9d0b0', deep:'#c46a33', glyph:'sunflower',
-  badge:'Sunflower · Seed Spreader', badgeSub:'You can position the product, name the engine that brings customers in, and grow revenue from existing ones.',
-  intro:'The best product doesn\'t always win. It has to be positioned well and sold to the right people.',
-  lessons:['Positioning','Go-to-market','Funnels vs growth loops','Upsell & cross-sell','Network effects'],
+ {id:'growth', name:'Growth', sub:'How does it grow?', hex:'#f9d0b0', deep:'#c46a33', glyph:'sunflower',
+  badge:'Seed Spreader', badgeSub:'You know how customers find you and how revenue grows.',
+  intro:'The best product doesn\'t always win. Positioning and reach matter.',
+  lessons:['Positioning','Go-to-market','Funnels vs loops','Upsell & cross-sell','Network effects'],
   qs:[
-   {id:'g_pos', t:'position', q:'Positioning statement', help:'Fill in or edit each underlined part.', xp:30},
-   {id:'g_voice', t:'textarea', q:'How do customers describe you, in their own words?', help:'Airbnb began as a cheaper alternative to hotels; customers came to value it for unique, local stays. Airbnb leaned in and gained pricing power.', ph:'"It\'s what I put on to relax after work."',
-    insight:(v,s)=>v&&v.length>10?'Compare this with your positioning above. Where they differ, customers may be showing you a stronger position.':null},
-   {id:'g_channels', t:'multi', q:'Go-to-market channels you rely on', opts:['Sales-led','Paid marketing','Content / SEO','Partnerships','Community','Product-led','Referrals','Events'],
-    insight:v=>v.length>4?{warn:true,html:'Early on, most companies win with 1–2 channels done very well. Which one would you double down on?'}:v.length?'Check: does this channel actually reach the buyer persona you described in Customer?':null},
-   {id:'g_engine', t:'mcq', big:true, q:'Main acquisition engine', opts:[['Funnel','Users move step by step: see → try → convert'],['Growth loop','Existing users bring in new ones through the product'],['Both','A funnel plus a loop']],
-    insight:v=>v==='Funnel'?'A funnel is fine, but it needs constant fuel. Look for a step where one user naturally exposes the product to someone new.':'Loops compound: every Calendly link sent is an ad for Calendly.'},
-   {id:'g_loop', t:'textarea', q:'Describe the loop: how does one user bring the next?', ph:'A must-watch show trends → friends talk about it → non-members join so they can keep up…', show:s=>s.g_engine==='Growth loop'||s.g_engine==='Both'},
-   {id:'g_upsell', t:'textarea', q:'Upsell: what better version could an existing customer pay more for?', ph:'From the ad-supported plan to Premium with 4K and more screens…'},
-   {id:'g_cross', t:'textarea', q:'Cross-sell: what adjacent product could they also buy?', ph:'Mobile games included in the membership, merchandise from hit shows…'},
-   {id:'g_net', t:'mcq', q:'Network effects: does the product get better as more people use it?', opts:['No','Somewhat','Strongly'],
-    insight:v=>v==='Strongly'?'Strong network effects (as with LinkedIn or Uber) are among the best moats. Protect the side of the network that is harder to attract.':v==='Somewhat'?'Data network effects count: more usage → better models → a better product. Make that visible to customers.':'That\'s fine. Most products have none. Your moat has to come from differentiation, switching costs or distribution.'}
+   {id:'g_pos', t:'position', q:'Positioning statement', help:'Edit any underlined part.', xp:30},
+   {id:'g_voice', t:'textarea', q:'How customers describe you', help:'Airbnb started as cheap hotels; customers valued unique stays, so Airbnb leaned in.', ph:'"It\'s what I put on to relax after work."',
+    insight:(v,s)=>v&&v.length>10?'Different from your positioning? Customers may be showing you a better one.':null},
+   {id:'g_channels', t:'multi', q:'Go-to-market channels', opts:['Sales-led','Paid marketing','Content / SEO','Partnerships','Community','Product-led','Referrals','Events'],
+    insight:v=>v.length>4?{warn:true,html:'Most early wins come from 1–2 channels.'}:null},
+   {id:'g_engine', t:'mcq', big:true, q:'How do new customers arrive?', opts:[['Funnel','See → try → convert'],['Growth loop','Users bring in users'],['Both','Funnel plus loop']],
+    insight:v=>v==='Funnel'?'Funnels need constant fuel. Look for a loop.':'Loops compound: every Calendly link is an ad.'},
+   {id:'g_loop', t:'textarea', q:'Describe the loop', ph:'A show trends → friends talk about it → non-members join to keep up', show:s=>s.g_engine==='Growth loop'||s.g_engine==='Both'},
+   {id:'g_upsell', t:'textarea', q:'Upsell: a better version they\'d pay more for', ph:'Ad-supported plan → Premium with 4K and more screens'},
+   {id:'g_cross', t:'textarea', q:'Cross-sell: another product they\'d buy', ph:'Mobile games, merchandise from hit shows'},
+   {id:'g_net', t:'mcq', q:'Does it get better as more people use it?', opts:['No','Somewhat','Strongly'],
+    insight:v=>v==='Strongly'?'Network effects (LinkedIn, Uber) are a strong moat.':v==='No'?'Most products don\'t. Your moat is elsewhere.':null}
   ]},
- {id:'principles', name:'PM Principles', sub:'Think like a business-minded PM', meta:'Become the gardener', hex:'#f6c6cf', deep:'#c05571', glyph:'bee',
-  badge:'Bee · Business-Minded PM', badgeSub:'You tie roadmap bets to business outcomes and stay the most informed person in the room.',
-  intro:'Every feature is a bet, paid for with engineering time, design time, GTM effort and opportunity cost.',
+ {id:'principles', name:'PM Principles', sub:'Think like a business-minded PM', hex:'#f6c6cf', deep:'#c05571', glyph:'bee',
+  badge:'Business-Minded PM', badgeSub:'You tie bets to outcomes and know the field.',
+  intro:'Every feature is a bet that costs time and focus.',
   lessons:['Tie bets to outcomes','Know the field','Keep learning'],
   qs:[
-   {id:'x_bet', t:'text', q:'Your biggest roadmap bet right now', ph:'e.g. Add live events to the subscription'},
-   {id:'x_outcome', t:'multi', q:'Which business outcome does that bet move?', opts:['Revenue','Retention','Efficiency','Expansion','Competitive advantage'],
-    insight:v=>v.length>=4?{warn:true,html:'A bet that moves everything usually moves nothing clearly. Choose the one outcome you\'d put on the slide.'}:v.length?'Now say it as one sentence a CFO would nod at: "This bet moves <b>'+v[0].toLowerCase()+'</b> because…"':null},
-   {id:'x_why', t:'textarea', q:'Pitch it in two sentences to a skeptical exec', ph:'Members cancel between big releases. Weekly live events give them a reason to stay, which protects monthly revenue…'},
-   {id:'x_last', t:'mcq', q:'When did you last talk directly to a customer?', opts:['This week','This month','This quarter','Can\'t remember'],
-    insight:v=>v==='This week'?'Your opinions carry weight because they come from recent customer conversations.':{warn:true,html:'Book three customer calls this week. Your edge as a PM is being the most informed person in the room, not the smartest.'}},
-   {id:'x_know', t:'multi', q:'I honestly know these better than anyone in the room…', opts:['Our customers (better than sales)','Our competitors (better than marketing)','Our market (better than the CEO)'],
-    insight:v=>v.length===3?'All three. Make sure the next meeting hears it.':{warn:true,html:'The unticked ones are your homework for this month.'}},
-   {id:'x_study', t:'text', q:'One company\'s pivot or turnaround you\'ll study next', ph:'e.g. Domino\'s owning its "cardboard pizza" feedback and rebuilding the recipe'}
+   {id:'x_bet', t:'text', q:'Your biggest roadmap bet', ph:'e.g. Add live events to the subscription'},
+   {id:'x_outcome', t:'multi', q:'Which outcome does it move?', opts:['Revenue','Retention','Efficiency','Expansion','Competitive advantage'],
+    insight:v=>v.length>=4?{warn:true,html:'A bet that moves everything moves nothing clearly. Pick one.'}:null},
+   {id:'x_why', t:'textarea', q:'Pitch it in two sentences', ph:'Members cancel between big releases. Weekly live events give them a reason to stay.'},
+   {id:'x_last', t:'mcq', q:'Last time you talked to a customer', opts:['This week','This month','This quarter','Can\'t remember'],
+    insight:v=>v==='This week'?null:{warn:true,html:'Book three customer calls this week.'}},
+   {id:'x_know', t:'multi', q:'I know these better than anyone in the room', opts:['Customers (vs sales)','Competitors (vs marketing)','Market (vs CEO)'],
+    insight:v=>v.length===3?null:{warn:true,html:'The unticked ones are this month\'s homework.'}},
+   {id:'x_study', t:'text', q:'A company turnaround to study next', ph:'e.g. Domino\'s rebuilding its pizza recipe'}
   ]}
 ];
 
@@ -460,14 +465,14 @@ const money=n=>n>=1e6?'$'+(n/1e6).toFixed(1)+'M':n>=1e4?'$'+Math.round(n/1e3)+'k
 function ring(p,col){const r=12,C=2*Math.PI*r;return `<svg class="ring" viewBox="0 0 30 30"><circle cx="15" cy="15" r="${r}" stroke="#d3cab9"/><circle cx="15" cy="15" r="${r}" stroke="${col}" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-p)}" stroke-linecap="round" transform="rotate(-90 15 15)" style="transition:stroke-dashoffset .5s"/></svg>`;}
 function renderSide(){
   $('#nav').innerHTML = CH.map((c,i)=>{const s=chStats(c);const p=s.n?s.d/s.n:0;
-    return `<button data-go="${c.id}" class="${cur===c.id?'on':''} ${p>=1?'done':''}">${ring(p,c.deep)}<span class="lbl">${i?i+'. ':''}${c.name}<small>${c.sub}</small></span><span class="chk" style="background:${c.hex}">✓</span></button>`;}).join('')
-   + `<button data-go="brief" class="${cur==='brief'?'on':''}"><span class="ring">${dd('basket')}</span><span class="lbl">Harvest Basket<small>Your Business Brief + weeds to pull</small></span></button>`;
+    return `<button data-go="${c.id}" class="${cur===c.id?'on':''} ${p>=1?'done':''}">${ring(p,c.deep)}<span class="lbl">${c.name}</span><span class="chk" style="background:${c.hex}">✓</span></button>`;}).join('')
+   + `<button data-go="brief" class="${cur==='brief'?'on':''}"><span class="ring">${dd('basket')}</span><span class="lbl">Your brief</span></button>`;
   {const nav=$('#nav'),on=nav.querySelector('.on');if(on&&nav.scrollWidth>nav.clientWidth)nav.scrollLeft=on.offsetLeft-nav.offsetLeft-(nav.clientWidth-on.offsetWidth)/2;}
   const t=totals(), li=level(t.pct);
   $('#lvlNum').textContent=li+1+' of '+LEVELS.length; $('#lvlName').textContent=LEVELS[li][1];
-  $('#xpNow').textContent=t.xp+' / '+t.max+' seeds';
+  $('#xpNow').textContent=ALL_Q.filter(q=>visible(q)&&answered(q)).length+' / '+ALL_Q.filter(visible).length+' leaves';
   const next=LEVELS[li+1]; $('#xpNext').textContent=next?'Next: '+next[1]:'Max level';
-  $('#xpBar').style.width=t.pct+'%';
+  renderTree();
   $('#shelf').innerHTML = CH.map(c=>`<div class="medal ${S.seen.includes(c.id)?'got':''}" title="${esc(c.badge)}" style="background:${S.seen.includes(c.id)?c.hex:''}">${dd(c.glyph)}</div>`).join('')
    + `<div class="medal ${S.seen.includes('trophy')?'got':''}" title="Ancient Oak trophy" style="background:${S.seen.includes('trophy')?'#e3f2df':''}">${dd('oak')}</div>`;
 }
@@ -485,8 +490,8 @@ function qHTML(q,i){
     const sel = q.t==='multi'?(v||[]):[v];
     body=`<div class="opts ${q.big?'big':''} ${q.max?'grid':''}">`+q.opts.map(o=>{const val=optVal(o);const lab=Array.isArray(o)?`<b>${esc(o[0])}</b><small>${esc(o[1])}</small>`:esc(o);
       return `<button class="opt ${sel.includes(val)?'on':''}" data-pick="${q.id}" data-val="${esc(val)}">${lab}</button>`;}).join('')+`</div>`;
-    if(q.t==='multi'&&q.other) body+=`<label class="otherrow"><span>Other:</span><input type="text" class="otherin" data-other="${q.id}" value="${esc(A[q.id+'__other']||'')}" placeholder="type your own (${esc(q.other)})"></label>`;
-    if(q.t==='multi') body=`<div style="font-size:14px;color:var(--muted);margin:-6px 0 8px">${q.max?'Pick up to '+q.max+' · tap again to unselect':'Pick all that apply'}<span class="sugnote" data-sugnote="${q.id}"></span></div>`+body;
+    if(q.t==='multi'&&q.other) body+=`<label class="otherrow"><span>Other:</span><input type="text" class="otherin" data-other="${q.id}" value="${esc(A[q.id+'__other']||'')}" placeholder="${esc(q.other)}"></label>`;
+    if(q.t==='multi') body=`<div style="font-size:14px;color:var(--muted);margin:-6px 0 8px">${q.max?'Pick up to '+q.max:'Pick any'}<span class="sugnote" data-sugnote="${q.id}"></span></div>`+body;
   }
   else if(q.t==='toggle') body=`<div class="toggle"><div class="tg"><button class="${v===true?'on':''}" data-tog="${q.id}" data-val="1">${q.yes}</button><button class="${v===false?'on':''}" data-tog="${q.id}" data-val="0">${q.no}</button></div></div>`;
   else if(q.t==='scale') body=`<div class="scale">${[1,2,3,4,5].map(n=>`<button class="${v===n?'on':''}" data-scale="${q.id}" data-val="${n}">${n}</button>`).join('')}<div class="ends"><span>${q.ends[0]}</span><span>${q.ends[1]}</span></div></div>`;
@@ -497,14 +502,15 @@ function qHTML(q,i){
   else if(q.t==='position'){const p=v||{};
     const ph={target:'who it is for',need:'their need',category:'type of product',benefit:'key benefit',alt:'main alternative',diff:'what makes you different'};
     const blank=k=>`<span class="blank" contenteditable="true" spellcheck="false" data-pos="${k}" data-ph="${esc(ph[k])}">${esc(p[k]||'')}</span>`;
-    body=`${p.__pre?'<div class="prenote">We pre-filled this from your earlier answers. Click any underlined part to edit it.</div>':''}<div class="pos">For ${blank('target')} who ${blank('need')}, <b>${esc(A.p_name||'our product')}</b> is a ${blank('category')} that ${blank('benefit')}. Unlike ${blank('alt')}, we ${blank('diff')}.</div>`;}
+    body=`${p.__pre?'<div class="prenote">Pre-filled from your answers.</div>':''}<div class="pos">For ${blank('target')} who ${blank('need')}, <b>${esc(A.p_name||'our product')}</b> is a ${blank('category')} that ${blank('benefit')}. Unlike ${blank('alt')}, we ${blank('diff')}.</div>`;}
   return `<div class="card sketch ${answered(q)?'answered':''}" data-card="${q.id}" style="${visible(q)?'':'display:none'}">
-    <div class="qhead"><div class="qnum">${i+1}</div><div><div class="qtitle">${q.q}</div>${q.help?`<div class="qhelp">${q.help}</div>`:''}</div><span class="xptag">+${qxp(q)} seeds</span></div>
+    <div class="qhead"><div class="qnum">${i+1}</div><div><div class="qtitle">${q.q}</div>${q.help?`<div class="qhelp">${q.help}</div>`:''}</div><span class="xptag">+${qxp(q)}</span></div>
     ${body}${q.max?'<div class="maxnote"></div>':''}<div class="insight" data-ins="${q.id}"></div></div>`;
 }
 function updateSuggest(){ALL_Q.filter(q=>q.suggest).forEach(q=>{const card=document.querySelector(`[data-card="${q.id}"]`);if(!card)return;const sg=q.suggest(A);
   card.querySelectorAll('.opt').forEach(o=>o.classList.toggle('sug',sg.includes(o.dataset.val)));
-  const n=card.querySelector('[data-sugnote]');if(n)n.innerHTML=sg.length?' · <span class="sugdot"></span> = suggested for the customer sizes you picked':' · pick customer sizes above to see suggestions';});}
+  const n=card.querySelector('[data-sugnote]');if(n)n.innerHTML=sg.length?' · <span class="sugdot"></span> suggested':'';});}
+function renumber(){let k=0;document.querySelectorAll('[data-card]').forEach(c=>{if(c.style.display!=='none'){const n=c.querySelector('.qnum');if(n)n.textContent=++k;}});}
 function renderInsight(q){
   const el=document.querySelector(`[data-ins="${q.id}"]`); if(!el) return;
   let out=null;
@@ -550,13 +556,13 @@ function render(){
   const c=CH.find(x=>x.id===cur); const idx=CH.indexOf(c);
   document.documentElement.style.setProperty('--accent',c.hex);document.documentElement.style.setProperty('--deep',c.deep);
   $('#main').innerHTML=`<section class="hero sketch"><div class="bigglyph">${dd(c.glyph)}</div>
-    <div class="kicker">${idx?'Pillar '+idx+' of '+(CH.length-1):'Warm-up'} · ${c.meta}</div><h1>${c.name}: ${c.sub}</h1><p>${c.intro}</p>
-    <div class="reward">${dd(c.glyph)} Finish this page to grow <b>&nbsp;${c.badge}</b></div></section>
-    ${c.lessons.length?`<div class="lesson">Seeds in this bed: ${c.lessons.map(l=>`<span>${l}</span>`).join('')}</div>`:''}
+    <div class="kicker">${idx?idx+' of '+(CH.length-1)+' · ':''}${c.name}</div><h1>${c.sub}</h1><p>${c.intro}</p>
+    <div class="reward">${dd(c.glyph)} Unlocks <b>&nbsp;${c.badge}</b></div></section>
+    ${c.lessons.length?`<div class="lesson">${c.lessons.map(l=>`<span>${l}</span>`).join('')}</div>`:''}
     ${c.qs.map((q,i)=>qHTML(q,i)).join('')}
     <div class="pager"><button class="btn ghost" ${idx?'':'disabled'} data-go="${idx?CH[idx-1].id:''}">← Back</button>
-    <button class="btn" data-go="${CH[idx+1]?CH[idx+1].id:'brief'}">${CH[idx+1]?'Wander on to '+CH[idx+1].name+' →':'Gather the harvest →'}</button></div>`;
-  c.qs.forEach(renderInsight); updateSuggest();
+    <button class="btn" data-go="${CH[idx+1]?CH[idx+1].id:'brief'}">${CH[idx+1]?CH[idx+1].name+' →':'See your brief →'}</button></div>`;
+  c.qs.forEach(renderInsight); updateSuggest(); renumber();
 }
 function refresh(q, evEl){
   const c=CH.find(x=>x.id===cur);
@@ -566,12 +572,32 @@ function refresh(q, evEl){
   renderInsight(q);
   // dependent insights
   c.qs.forEach(qq=>{if(qq!==q&&qq.insight&&qq.insight.length>1) renderInsight(qq);});
-  updateSuggest(); save(); renderSide();
+  updateSuggest(); renumber(); save(); renderSide();
   const after=totals().xp;
   if(after>before && evEl) floatXP(evEl,after-before);
   checkBadges();
 }
-function floatXP(el,n){const r=el.getBoundingClientRect();const d=document.createElement('div');d.className='floatxp';d.textContent='+'+n+' seeds';d.style.left=(r.right-60)+'px';d.style.top=(r.top-6)+'px';document.body.appendChild(d);setTimeout(()=>d.remove(),1000);}
+let prevLeaves=null;
+function renderTree(){
+  const qs=ALL_Q.filter(visible), n=qs.length, now=new Set(qs.filter(answered).map(q=>q.id));
+  const col=Object.fromEntries(CH.map(c=>[c.id,c.hex]));
+  let leaves='';
+  qs.forEach((q,i)=>{const r=Math.sqrt((i+.5)/n),a=i*2.39996,x=(60+Math.cos(a)*r*47).toFixed(1),y=(44+Math.sin(a)*r*33).toFixed(1),rot=Math.round(a*57.3%180);
+    const on=now.has(q.id), isNew=on&&prevLeaves&&!prevLeaves.has(q.id);
+    leaves+=on?`<ellipse class="${isNew?'pop':''}" cx="${x}" cy="${y}" rx="5.4" ry="3.2" transform="rotate(${rot} ${x} ${y})" fill="${col[q.ch]}" stroke="#2d2a26" stroke-width=".9"/>`
+             :`<ellipse cx="${x}" cy="${y}" rx="4.2" ry="2.4" transform="rotate(${rot} ${x} ${y})" fill="none" stroke="#b9b1a3" stroke-width=".7" stroke-dasharray="1.6 1.4"/>`;});
+  const done=now.size===n&&n>0;
+  $('#tree').innerHTML=`<svg viewBox="0 0 120 114" class="tree" aria-label="${now.size} of ${n} questions answered">
+    <ellipse cx="60" cy="44" rx="56" ry="41" fill="#e3f2df" opacity=".55"/>
+    <path d="M52 113 Q56 94 54 80 L62 80 Q61 94 67 113Z" fill="#d9bfa0" stroke="#2d2a26" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M56 84 Q52 70 42 62 M59 82 Q64 70 77 63 M57 74 Q58 64 60 56" fill="none" stroke="#2d2a26" stroke-width="1.6" stroke-linecap="round"/>
+    ${leaves}${done?'<g fill="#f6c6cf" stroke="#2d2a26" stroke-width=".8"><circle cx="36" cy="30" r="3"/><circle cx="82" cy="26" r="3"/><circle cx="60" cy="16" r="3"/><circle cx="90" cy="50" r="3"/><circle cx="28" cy="52" r="3"/></g>':''}</svg>`;
+  prevLeaves=now;
+}
+function leafBurst(r){for(let k=0;k<4;k++){const l=document.createElement('div');l.className='leafbit';l.innerHTML='<svg viewBox="0 0 20 12"><ellipse cx="10" cy="6" rx="8" ry="4.5" fill="#cde8c9" stroke="#2d2a26" stroke-width="1.2"/></svg>';
+  l.style.left=(r.left+20)+'px';l.style.top=(r.top+10)+'px';l.style.setProperty('--dx',(Math.random()*90-45)+'px');l.style.setProperty('--dy',(-30-Math.random()*40)+'px');l.style.setProperty('--rot',(Math.random()*360)+'deg');
+  document.body.appendChild(l);setTimeout(()=>l.remove(),900);}}
+function floatXP(el,n){const r=el.getBoundingClientRect();const d=document.createElement('div');d.className='floatxp';d.textContent='+'+n;leafBurst(r);d.style.left=(r.right-60)+'px';d.style.top=(r.top-6)+'px';document.body.appendChild(d);setTimeout(()=>d.remove(),1000);}
 
 /* ---------------- Events ---------------- */
 const qById=id=>ALL_Q.find(q=>q.id===id);
@@ -580,7 +606,7 @@ document.addEventListener('click',e=>{
   if(b){const q=qById(b.dataset.pick),val=b.dataset.val;
     if(q.t==='mcq'){A[q.id]=A[q.id]===val?undefined:val; b.parentNode.querySelectorAll('.opt').forEach(o=>o.classList.toggle('on',o.dataset.val===A[q.id]));}
     else{const arr=A[q.id]||[];const k=arr.indexOf(val);
-      if(k<0&&q.max&&arr.length>=q.max){const n=b.closest('.card').querySelector('.maxnote');n.textContent='You already picked '+q.max+'. Unselect one to swap it in.';n.style.display='block';setTimeout(()=>n.style.display='none',2600);return;}
+      if(k<0&&q.max&&arr.length>=q.max){const n=b.closest('.card').querySelector('.maxnote');n.textContent='Max '+q.max+'. Unselect one first.';n.style.display='block';setTimeout(()=>n.style.display='none',2600);return;}
       k>=0?arr.splice(k,1):arr.push(val);A[q.id]=arr;b.classList.toggle('on',k<0);}
     return refresh(q,b);}
   b=e.target.closest('[data-tog]');
@@ -616,10 +642,10 @@ document.addEventListener('keydown',e=>{
 /* ---------------- Badges, toast, confetti ---------------- */
 let toastQ=[],toasting=false;
 function checkBadges(){
-  CH.forEach(c=>{const s=chStats(c); if(s.d===s.n&&s.n>0&&!S.seen.includes(c.id)){S.seen.push(c.id);toastQ.push({kicker:'Something bloomed',title:c.badge,sub:c.badgeSub,glyph:c.glyph,hex:c.hex});}});
-  const t=totals(); if(t.pct>=95&&!S.seen.includes('trophy')){S.seen.push('trophy');toastQ.push({kicker:'Your garden is complete',title:'Ancient Oak',sub:'Your harvest basket is full. Share the Business Brief with your team.',glyph:'oak',hex:'#e3f2df',big:true});}
+  CH.forEach(c=>{const s=chStats(c); if(s.d===s.n&&s.n>0&&!S.seen.includes(c.id)){S.seen.push(c.id);toastQ.push({kicker:'Badge unlocked',title:c.badge,sub:c.badgeSub,glyph:c.glyph,hex:c.hex});}});
+  const t=totals(); if(t.pct>=95&&!S.seen.includes('trophy')){S.seen.push('trophy');toastQ.push({kicker:'Garden complete',title:'Ancient Oak',sub:'Your brief is ready to share.',glyph:'oak',hex:'#e3f2df',big:true});}
   // level-up
-  const li=level(t.pct); if(S.lvl===undefined)S.lvl=li; if(li>S.lvl){S.lvl=li; if(!toastQ.length) toastQ.push({kicker:'You grew · stage '+(li+1),title:LEVELS[li][1],sub:'Keep watering, the next bloom is close.',glyph:'leaf',hex:'#cde8c9',small:true});}
+  const li=level(t.pct); if(S.lvl===undefined)S.lvl=li; if(li>S.lvl){S.lvl=li; if(!toastQ.length) toastQ.push({kicker:'Level up',title:LEVELS[li][1],sub:'',glyph:'leaf',hex:'#cde8c9',small:true});}
   save(); renderSide(); nextToast();
 }
 function nextToast(){
@@ -639,7 +665,7 @@ function confetti(n){
 
 /* ---------------- Brief ---------------- */
 function fmt(q){
-  const v=A[q.id]; if(!answered(q)) return '<span class="empty">Not answered yet</span>';
+  const v=A[q.id]; if(!answered(q)) return '<span class="empty">–</span>';
   if(q.t==='toggle') return v?q.yes:q.no;
   if(q.t==='multi'){const o=(A[q.id+'__other']||'').trim();return esc([...(v||[]),...(o?['Other: '+o]:[])].join(', '));}
   if(Array.isArray(v)) return esc(v.join(', '));
@@ -652,24 +678,24 @@ const plain=h=>h.replace(/<br>/g,'\n').replace(/<[^>]+>/g,'').replace(/&amp;/g,'
 const short=q=>q.q.replace(/\s*\(.*?\)\s*/g,' ').replace(/:.*$/,'').replace(/…$/,'').trim();
 function blindSpots(){
   const out=[];const u=unit();
-  if(A.c_same===false && !answered(qById('c_buyer'))) out.push('Users and buyers are different people, but the buyer persona is blank.');
+  if(A.c_same===false && !answered(qById('c_buyer'))) out.push('Buyer persona is blank.');
   
-  if((A.k_alts||[]).includes('Doing nothing')) out.push('"Doing nothing" is a real competitor. Quantify the cost of inaction in your pitch.');
-  if(A.k_axis==='Price') out.push('Differentiating on price is hard to defend. Look for an experience customers will pay more for.');
-  if(u&&u.ratio!=null&&u.ratio<3) out.push(`LTV:CAC is ${u.ratio.toFixed(1)}×, below the 3× rule of thumb. Work on retention, pricing or cheaper acquisition.`);
-  if(!u) out.push('Unit economics are missing. Even rough LTV and CAC numbers change roadmap conversations.');
-  if(A.m_measured===false) out.push('Unit economics are estimated. List the data you need to measure them.');
-  if(A.m_wtp&&A.m_wtp<=2) out.push('Low pricing power. Customers may not be seeing value above price.');
-  if(A.r_curve==='Keeps declining') out.push('Retention keeps declining. Fix it before scaling acquisition.');
-  if(A.r_curve==='Haven\'t looked') out.push('Nobody has looked at the retention curve. Build a cohort chart.');
-  if(A.r_when==='In the first weeks'||A.r_when==='Both') out.push('Early churn: invest in onboarding and the activation moment.');
-  if(A.r_when==='After several months'||A.r_when==='Both') out.push('Late churn: look at long-term value, use-case breadth and upgrade paths.');
-  const pmf=(A.r_pmf||[]).length; if(answered(qById('r_pmf'))&&pmf<4) out.push(`Product-market fit: ${pmf} of 4 parts of the video\'s definition are true. Focus on the missing parts.`);
-  if((A.g_channels||[]).length>4) out.push('Many GTM channels at once. Pick 1–2 to go deep on.');
-  if(A.g_engine==='Funnel') out.push('Funnel-only acquisition needs constant fuel. Look for a growth loop.');
-  if(!answered(qById('x_outcome'))&&answered(qById('x_bet'))) out.push('Your biggest bet isn\'t tied to a business outcome yet.');
-  if(A.x_last&&A.x_last!=='This week') out.push('Talk to a customer this week. Fresh insight is what gives a PM\'s opinion weight.');
-  const miss=ALL_Q.filter(q=>visible(q)&&!answered(q)).length; if(miss) out.push(`${miss} question${miss>1?'s':''} still open across the canvas.`);
+  if((A.k_alts||[]).includes('Doing nothing')) out.push('Show what doing nothing costs.');
+  if(A.k_axis==='Price') out.push('Price is a weak edge.');
+  if(u&&u.ratio!=null&&u.ratio<3) out.push(`LTV:CAC is ${u.ratio.toFixed(1)}×, below 3×.`);
+  if(!u) out.push('Unit economics missing.');
+  if(A.m_measured===false) out.push('Unit economics are estimates.');
+  if(A.m_wtp&&A.m_wtp<=2) out.push('Low pricing power.');
+  if(A.r_curve==='Keeps declining') out.push('Retention keeps declining.');
+  if(A.r_curve==='Haven\'t looked') out.push('Retention curve not checked.');
+  if(A.r_when==='In the first weeks'||A.r_when==='Both') out.push('Early churn: fix onboarding.');
+  if(A.r_when==='After several months'||A.r_when==='Both') out.push('Late churn: deepen long-term value.');
+  const pmf=(A.r_pmf||[]).length; if(answered(qById('r_pmf'))&&pmf<4) out.push(`Product-market fit: ${pmf} of 4.`);
+  if((A.g_channels||[]).length>4) out.push('Too many channels. Pick 1–2.');
+  if(A.g_engine==='Funnel') out.push('No growth loop yet.');
+  if(!answered(qById('x_outcome'))&&answered(qById('x_bet'))) out.push('Biggest bet has no outcome.');
+  if(A.x_last&&A.x_last!=='This week') out.push('Talk to a customer this week.');
+  const miss=ALL_Q.filter(q=>visible(q)&&!answered(q)).length; if(miss) out.push(`${miss} question${miss>1?'s':''} open.`);
   return out;
 }
 function renderBrief(){
@@ -677,15 +703,15 @@ function renderBrief(){
   const t=totals(), li=level(t.pct), spots=blindSpots(), won=S.seen.includes('trophy');
   const title=(A.p_name||'Your product')+(A.p_company?' · '+A.p_company:'');
   $('#main').innerHTML=`
-   <div class="trophy sketch"><div class="cup" style="${won?'':'filter:grayscale(1);opacity:.45'}">${dd('oak')}</div><div><b>${won?'Ancient Oak: your garden is complete':'Growth stage '+(li+1)+': '+LEVELS[li][1]}</b>
-   <p>${won?'You can explain who you build for, how it makes money, why customers stay and what drives growth.':`${Math.round(t.pct)}% grown · ${CH.filter(c=>S.seen.includes(c.id)).length}/${CH.length} blooms. Reach 95% to grow the Ancient Oak.`}</p></div></div>
+   <div class="trophy sketch"><div class="cup" style="${won?'':'filter:grayscale(1);opacity:.45'}">${dd('oak')}</div><div><b>${won?'Ancient Oak: garden complete':LEVELS[li][1]}</b>
+   <p>${won?'Who it\'s for, how it earns, why they stay, how it grows.':`${Math.round(t.pct)}% done · ${CH.filter(c=>S.seen.includes(c.id)).length}/${CH.length} badges`}</p></div></div>
    <div class="brief sketch" id="briefDoc">
     <div class="eyebrow">${dd('basket')} Business Brief</div>
     <h2>${esc(title)}</h2>
-    <p style="color:var(--muted);margin:6px 0 0">${A.p_oneliner?esc(A.p_oneliner):'Add a one-line description in the Warm-up.'}${A.p_stage?' · Stage: '+esc(A.p_stage):''}</p>
+    <p style="color:var(--muted);margin:6px 0 0">${A.p_oneliner?esc(A.p_oneliner):''}${A.p_stage?' · Stage: '+esc(A.p_stage):''}</p>
     ${CH.slice(1).map(c=>`<h3><i style="background:${c.hex}"></i>${c.name}</h3><dl>${c.qs.filter(visible).map(q=>`<dt>${short(q)}</dt><dd>${fmt(q)}</dd>`).join('')}</dl>`).join('')}
-    <h3><i style="background:#c08a2a"></i>Weeds to pull &amp; next moves</h3>
-    <ul class="spots">${spots.length?spots.map(s=>`<li>${esc(s)}</li>`).join(''):'<li class="ok">No weeds spotted. Your garden is thriving.</li>'}</ul>
+    <h3><i style="background:#c08a2a"></i>Blind spots</h3>
+    <ul class="spots">${spots.length?spots.map(s=>`<li>${esc(s)}</li>`).join(''):'<li class="ok">No blind spots.</li>'}</ul>
     <div class="brief-actions"><button class="btn" id="pdfBtn">Download PDF</button><button class="btn ghost" id="copyMd">Copy as text</button><button class="btn ghost" data-go="profile">Edit answers</button><span class="copied" id="copied"></span></div>
     <textarea class="export" id="exportBox" readonly></textarea>
    </div>`;
@@ -695,7 +721,7 @@ function renderBrief(){
     CH.slice(1).forEach(c=>{md+=`\n## ${c.name}\n`;c.qs.filter(visible).forEach(q=>{md+=`- **${short(q)}:** ${plain(fmt(q))}\n`;});});
     md+=`\n## Blind spots & next moves\n`+spots.map(s=>'- '+s).join('\n')+'\n';
     try{await navigator.clipboard.writeText(md);$('#copied').textContent='Copied to clipboard';}
-    catch(e){const b=$('#exportBox');b.style.display='block';b.value=md;b.select();$('#copied').textContent='Select all and copy the text below';}
+    catch(e){const b=$('#exportBox');b.style.display='block';b.value=md;b.select();$('#copied').textContent='Copy the text below';}
   };
 }
 
@@ -703,7 +729,7 @@ function renderBrief(){
 const loadJs=src=>new Promise((ok,no)=>{if(document.querySelector(`script[src="${src}"]`))return ok();const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s);});
 async function downloadPdf(){
   const msg=$('#copied'), btn=$('#pdfBtn');
-  btn.disabled=true; msg.textContent='Preparing your PDF…';
+  btn.disabled=true; msg.textContent='Preparing…';
   try{
     await loadJs('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
     await loadJs('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
@@ -715,8 +741,8 @@ async function downloadPdf(){
     pdf.addImage(cv.toDataURL('image/jpeg',0.92),'JPEG',pad,pad,w,h);
     const name=((A.p_name||'my-product').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'my-product')+'-business-garden.pdf';
     pdf.save(name);
-    msg.textContent='Downloaded '+name+'. If nothing appeared, downloads may be blocked here: open the site directly in your browser.';
-  }catch(e){msg.textContent='Could not create the PDF here. Open the site directly in your browser and try again.';}
+    msg.textContent='Downloaded '+name;
+  }catch(e){msg.textContent='PDF failed. Open the site directly and retry.';}
   btn.disabled=false;
 }
 
