@@ -10,7 +10,6 @@ An interactive, sketchbook-style canvas for product managers to map the business
 
 …plus PM principles to finish. Earn seeds, grow from Seed to Ancient Oak, collect badges, and get a one-page Business Brief with "weeds to pull" (blind spots) you can copy as Markdown.
 
-**Try it:** https://annietran-qode.github.io/pm-business-garden/
 
 ## Privacy
 
